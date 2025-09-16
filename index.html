@@ -292,8 +292,8 @@
                                 <i class="fas fa-history me-2"></i>
                                 최근 분석 결과
                             </h5>
-                            <button class="btn btn-sm btn-outline-light" onclick="clearAllAnalyses()" title="전체 삭제">
-                                <i class="fas fa-trash-alt"></i>
+                            <button class="btn btn-sm btn-outline-light" onclick="clearAllAnalyses()" title="전체 초기화">
+                                <i class="fas fa-broom"></i>
                             </button>
                         </div>
                         <div class="card-body">
@@ -822,7 +822,7 @@
                                 <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'} me-2">
                                     ${truthPercentage}%
                                 </span>
-                                <button class="btn btn-sm btn-outline-danger me-2" onclick="deleteAnalysis(${index})" title="삭제">
+                                <button class="btn btn-sm btn-outline-danger me-2" onclick="deleteAnalysis(${index})" title="개별 삭제">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
