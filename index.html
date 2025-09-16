@@ -409,62 +409,66 @@
             loading.classList.add('show');
             resultDiv.innerHTML = '';
             
-            // 실제 API 호출
-            fetch('/api/analyze', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    statement: statement,
-                    context: context,
-                    mode: currentAnalysisMode
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                displayAnalysisResult(data);
-                // 로컬 스토리지에 분석 결과 저장
-                saveAnalysisToLocal(data);
-                loadRecentAnalyses();
-            })
-            .catch(error => {
-                console.error('API 오류:', error);
-                // API 오류 시 데모 결과로 폴백
+            // GitHub Pages에서는 데모 모드로 작동
+            console.log('GitHub Pages 모드: 데모 분석 실행');
+            
+            // 2초 후 데모 결과 표시 (실제 분석 시뮬레이션)
+            setTimeout(function() {
                 try {
                     const demoResult = generateDemoResult(statement, currentAnalysisMode);
                     displayAnalysisResult(demoResult);
-                    // 데모 결과도 로컬 스토리지에 저장
+                    // 데모 결과를 로컬 스토리지에 저장
                     saveAnalysisToLocal(demoResult);
                     loadRecentAnalyses();
-                } catch (demoError) {
+                } catch (error) {
+                    console.error('분석 오류:', error);
                     resultDiv.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             분석 중 오류가 발생했습니다: ${error.message}
                         </div>
                     `;
+                } finally {
+                    loading.classList.remove('show');
                 }
-            })
-            .finally(() => {
-                loading.classList.remove('show');
-            });
+            }, 2000);
         });
         
         // 데모용 결과 생성 함수
         function generateDemoResult(statement, mode) {
-            const truthPercentage = Math.random() * 40 + 50; // 50-90% 사이
-            const confidence = Math.random() * 20 + 70; // 70-90% 사이
+            // 문장 내용에 따라 더 현실적인 결과 생성
+            const lowerStatement = statement.toLowerCase();
+            let truthPercentage, confidence, needsCorrection;
+            
+            // 문장 패턴에 따른 진실성 점수 조정
+            if (lowerStatement.includes('완전히') || lowerStatement.includes('절대적으로') || lowerStatement.includes('100%')) {
+                truthPercentage = Math.random() * 20 + 30; // 30-50% (과장된 표현)
+                confidence = Math.random() * 15 + 80; // 80-95%
+                needsCorrection = true;
+            } else if (lowerStatement.includes('지구') && lowerStatement.includes('평평')) {
+                truthPercentage = 5; // 명백한 거짓
+                confidence = 95;
+                needsCorrection = true;
+            } else if (lowerStatement.includes('물') && lowerStatement.includes('끓')) {
+                truthPercentage = Math.random() * 10 + 85; // 85-95% (일반적으로 맞음)
+                confidence = Math.random() * 10 + 85;
+                needsCorrection = false;
+            } else if (lowerStatement.includes('모든') && lowerStatement.includes('다르다')) {
+                truthPercentage = Math.random() * 15 + 70; // 70-85% (논리적 모순)
+                confidence = Math.random() * 15 + 75;
+                needsCorrection = true;
+            } else {
+                truthPercentage = Math.random() * 30 + 60; // 60-90% (일반적)
+                confidence = Math.random() * 20 + 70; // 70-90%
+                needsCorrection = truthPercentage < 80;
+            }
             
             return {
                 statement: statement,
                 final_analysis: {
                     truth_percentage: truthPercentage / 100,
                     confidence: confidence / 100,
-                    needs_correction: truthPercentage < 70
+                    needs_correction: needsCorrection
                 },
                 basic_analysis: {
                     detected_lies: truthPercentage < 70 ? ['과장된 표현 감지', '논리적 모순 발견'] : [],
@@ -741,44 +745,25 @@
                 }
             }
             
-            // API 호출 시도
-            fetch('/api/recent?limit=5')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+            // 로컬 스토리지에 데이터가 없으면 데모 데이터 표시
+            const demoAnalyses = [
+                {
+                    statement: "지구는 완전히 둥글다.",
+                    final_analysis: { truth_percentage: 0.85, needs_correction: true },
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    statement: "물은 100도에서 끓는다.",
+                    final_analysis: { truth_percentage: 0.95, needs_correction: false },
+                    timestamp: new Date(Date.now() - 60000).toISOString()
+                },
+                {
+                    statement: "모든 사람이 일부 사람과 다르다.",
+                    final_analysis: { truth_percentage: 0.75, needs_correction: true },
+                    timestamp: new Date(Date.now() - 120000).toISOString()
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                displayRecentAnalyses(data.recent_analyses);
-                // 로컬 스토리지에 저장
-                localStorage.setItem('recentAnalyses', JSON.stringify(data.recent_analyses));
-            })
-            .catch(error => {
-                console.error('최근 분석 결과 로드 오류:', error);
-                // 오류 시 데모 데이터 표시
-                const demoAnalyses = [
-                    {
-                        statement: "지구는 완전히 둥글다.",
-                        final_analysis: { truth_percentage: 0.85, needs_correction: true },
-                        timestamp: new Date().toISOString()
-                    },
-                    {
-                        statement: "물은 100도에서 끓는다.",
-                        final_analysis: { truth_percentage: 0.95, needs_correction: false },
-                        timestamp: new Date(Date.now() - 60000).toISOString()
-                    },
-                    {
-                        statement: "모든 사람이 일부 사람과 다르다.",
-                        final_analysis: { truth_percentage: 0.75, needs_correction: true },
-                        timestamp: new Date(Date.now() - 120000).toISOString()
-                    }
-                ];
-                displayRecentAnalyses(demoAnalyses);
-            });
+            ];
+            displayRecentAnalyses(demoAnalyses);
         }
         
         // 최근 분석 결과 표시
@@ -913,36 +898,15 @@
             }
         }
         
-        // API 호출 시도
-        fetch('/api/dashboard')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            displayDashboard(data);
-        })
-        .catch(error => {
-            console.error('대시보드 데이터 로드 오류:', error);
-            // 로컬 스토리지에서 데이터 생성
-            const storedAnalyses = localStorage.getItem('recentAnalyses');
-            if (storedAnalyses) {
-                try {
-                    const analyses = JSON.parse(storedAnalyses);
-                    const dashboardData = generateDashboardData(analyses);
-                    displayDashboard(dashboardData);
-                } catch (e) {
-                    displayDashboardError('데이터를 불러올 수 없습니다.');
-                }
-            } else {
-                displayDashboardError('데이터를 불러올 수 없습니다.');
-            }
-        });
+        // 로컬 스토리지에 데이터가 없으면 빈 대시보드 표시
+        const emptyDashboardData = {
+            total_analyses: 0,
+            average_truth_percentage: 0,
+            correction_rate: 0,
+            detector_stats: {},
+            recent_trends: []
+        };
+        displayDashboard(emptyDashboardData);
     }
     
     // 로컬 데이터로부터 대시보드 데이터 생성
