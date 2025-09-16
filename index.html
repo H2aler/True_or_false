@@ -770,25 +770,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // 로컬 스토리지에 데이터가 없으면 데모 데이터 표시
-            const demoAnalyses = [
-                {
-                    statement: "지구는 완전히 둥글다.",
-                    final_analysis: { truth_percentage: 0.85, needs_correction: true },
-                    timestamp: new Date().toISOString()
-                },
-                {
-                    statement: "물은 100도에서 끓는다.",
-                    final_analysis: { truth_percentage: 0.95, needs_correction: false },
-                    timestamp: new Date(Date.now() - 60000).toISOString()
-                },
-                {
-                    statement: "모든 사람이 일부 사람과 다르다.",
-                    final_analysis: { truth_percentage: 0.75, needs_correction: true },
-                    timestamp: new Date(Date.now() - 120000).toISOString()
-                }
-            ];
-            displayRecentAnalyses(demoAnalyses);
+            // 로컬 스토리지에 데이터가 없으면 빈 상태 표시
+            displayRecentAnalyses([]);
         }
         
         // 최근 분석 결과 표시
