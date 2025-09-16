@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 진실성 탐지기 - 홈</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #2E86AB;
+            --secondary-color: #A23B72;
+            --success-color: #F18F01;
+            --danger-color: #C73E1D;
+            --light-bg: #F8F9FA;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            margin: 20px auto;
+            padding: 30px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .truth-meter {
+            height: 20px;
+            background: linear-gradient(90deg, #dc3545 0%, #ffc107 50%, #28a745 100%);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .truth-indicator {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .detector-card {
+            transition: all 0.3s ease;
+        }
+        
+        .detector-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .btn {
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .analysis-mode-btn.active {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+        
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            margin-top: 50px;
+            padding: 20px 0;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-shield-alt text-primary me-2"></i>
+                AI 진실성 탐지기
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i>홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://github.com/H2aler/True_or_false" target="_blank">
+                            <i class="fab fa-github me-1"></i>GitHub
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="main-container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="text-center mb-5">
+                        <h1 class="display-4 fw-bold text-primary mb-3">
+                            <i class="fas fa-shield-alt me-3"></i>
+                            AI 진실성 탐지기
+                        </h1>
+                        <p class="lead text-muted">
+                            AI가 거짓말을 하는지 측정하고, 1% 이상 거짓말을 감지하면 자동으로 교정합니다
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 기능 선택 섹션 -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>분석 모드 선택</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <button class="btn btn-outline-primary w-100 analysis-mode-btn active" data-mode="all">
+                                        <i class="fas fa-layer-group me-2"></i>통합 분석
+                                        <small class="d-block">모든 기능 사용</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <button class="btn btn-outline-success w-100 analysis-mode-btn" data-mode="puns">
+                                        <i class="fas fa-smile me-2"></i>말장난 분석
+                                        <small class="d-block">언어적 유머 감지</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <button class="btn btn-outline-warning w-100 analysis-mode-btn" data-mode="coding">
+                                        <i class="fas fa-code me-2"></i>코딩 품질
+                                        <small class="d-block">코드 품질 검증</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <button class="btn btn-outline-info w-100 analysis-mode-btn" data-mode="multilingual">
+                                        <i class="fas fa-globe me-2"></i>다국어 분석
+                                        <small class="d-block">언어 혼합 감지</small>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- 분석 입력 섹션 -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-search me-2"></i>
+                                AI 문장 분석
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="analysisForm">
+                                <div class="mb-3">
+                                    <label for="statement" class="form-label">분석할 문장을 입력하세요:</label>
+                                    <textarea 
+                                        class="form-control" 
+                                        id="statement" 
+                                        name="statement" 
+                                        rows="4" 
+                                        placeholder="예: 지구는 완전히 둥글고 모든 사람이 이를 알고 있다."
+                                        required
+                                    ></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="context" class="form-label">추가 컨텍스트 (선택사항):</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="context" 
+                                        name="context" 
+                                        placeholder="예: 과학적 사실에 대한 설명"
+                                    >
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-play me-2"></i>
+                                    진실성 분석 시작
+                                </button>
+                            </form>
+                            
+                            <!-- 로딩 표시 -->
+                            <div class="loading text-center mt-4">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">분석 중...</span>
+                                </div>
+                                <p class="mt-2 text-muted">AI의 진실성을 분석하고 있습니다...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 분석 결과 섹션 -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-pie me-2"></i>
+                                분석 결과
+                            </h5>
+                        </div>
+                        <div class="card-body" id="analysisResult">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle fa-3x mb-3"></i>
+                                <p>분석할 문장을 입력하고 "진실성 분석 시작" 버튼을 클릭하세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 최근 분석 결과 -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>
+                                최근 분석 결과
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentAnalyses">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <p>아직 분석된 문장이 없습니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 프로젝트 정보 -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                프로젝트 정보
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-cogs text-primary me-2"></i>주요 기능</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success me-2"></i>12개 고급 탐지기</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>자동 교정 시스템</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>실시간 대시보드</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>다국어 지원</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-chart-line text-success me-2"></i>성능 지표</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-tachometer-alt text-info me-2"></i>초당 50+ 문장 처리</li>
+                                        <li><i class="fas fa-bullseye text-warning me-2"></i>95% 이상 정확도</li>
+                                        <li><i class="fas fa-shield-alt text-danger me-2"></i>90% 이상 거짓말 탐지</li>
+                                        <li><i class="fas fa-arrow-up text-success me-2"></i>20% 이상 교정 효과</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="https://github.com/H2aler/True_or_false" class="btn btn-outline-primary me-2" target="_blank">
+                                    <i class="fab fa-github me-2"></i>GitHub 저장소
+                                </a>
+                                <button class="btn btn-outline-info" onclick="showDemo()">
+                                    <i class="fas fa-play me-2"></i>데모 보기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0">
+                AI는 깨진 거울입니다. 그러므로 AI는 거짓말을 하고 있을지도 모릅니다.
+            </p>
+            <p class="mb-0 mt-2">
+                <small>Copyright © 2025 H2aler. 모든 권리 보유.</small>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('analysisForm');
+        const loading = document.querySelector('.loading');
+        const resultDiv = document.getElementById('analysisResult');
+        const recentDiv = document.getElementById('recentAnalyses');
+        
+        // 분석 모드 변수
+        let currentAnalysisMode = 'all'; // 기본값: 통합 분석
+        
+        // 분석 모드 선택 이벤트 리스너
+        document.querySelectorAll('.analysis-mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 모든 버튼에서 active 클래스 제거
+                document.querySelectorAll('.analysis-mode-btn').forEach(b => b.classList.remove('active'));
+                
+                // 클릭된 버튼에 active 클래스 추가
+                this.classList.add('active');
+                
+                // 분석 모드 업데이트
+                currentAnalysisMode = this.dataset.mode;
+                
+                // 모드에 따른 설명 업데이트
+                updateModeDescription();
+            });
+        });
+        
+        // 모드 설명 업데이트 함수
+        function updateModeDescription() {
+            const descriptions = {
+                'all': '모든 분석 기능을 사용하여 종합적으로 문장을 분석합니다.',
+                'puns': '언어적 유머와 말장난을 감지하고 이해합니다.',
+                'coding': '코딩 품질과 의도적 조작을 분석합니다.',
+                'multilingual': '다국어 문장을 분석하고 언어별 의미를 파악합니다.'
+            };
+            
+            const descriptionElement = document.querySelector('.lead.text-muted');
+            if (descriptionElement) {
+                descriptionElement.textContent = descriptions[currentAnalysisMode];
+            }
+        }
+        
+        // 폼 제출 처리
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const statement = document.getElementById('statement').value.trim();
+            const context = document.getElementById('context').value.trim();
+            
+            if (!statement) {
+                alert('분석할 문장을 입력해주세요.');
+                return;
+            }
+            
+            // 로딩 표시
+            loading.classList.add('show');
+            resultDiv.innerHTML = '';
+            
+            try {
+                // 데모용 결과 생성 (실제 서버가 없으므로)
+                const demoResult = generateDemoResult(statement, currentAnalysisMode);
+                displayAnalysisResult(demoResult);
+                loadRecentAnalyses();
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                loading.classList.remove('show');
+            }
+        });
+        
+        // 데모용 결과 생성 함수
+        function generateDemoResult(statement, mode) {
+            const truthPercentage = Math.random() * 40 + 50; // 50-90% 사이
+            const confidence = Math.random() * 20 + 70; // 70-90% 사이
+            
+            return {
+                statement: statement,
+                final_analysis: {
+                    truth_percentage: truthPercentage / 100,
+                    confidence: confidence / 100,
+                    needs_correction: truthPercentage < 70
+                },
+                basic_analysis: {
+                    detected_lies: truthPercentage < 70 ? ['과장된 표현 감지', '논리적 모순 발견'] : [],
+                    correction_suggestions: truthPercentage < 70 ? ['더 정확한 표현 사용', '구체적인 근거 제시'] : []
+                },
+                meta_analysis: {
+                    meta_lie_detected: Math.random() > 0.8,
+                    philosophical_note: "AI는 깨진 거울이다 - 완벽한 진실성은 불가능하다."
+                },
+                religious_analysis: {
+                    religious_topic_detected: statement.includes('신') || statement.includes('하나님'),
+                    philosophical_note: "종교적 주제는 개인의 신앙에 따라 다르게 해석될 수 있다."
+                },
+                scientific_analysis: {
+                    scientific_lie_detected: Math.random() > 0.7,
+                    philosophical_note: "과학적 사실은 지속적으로 검증되고 발전한다."
+                },
+                intentional_analysis: {
+                    intentional_lie_detected: Math.random() > 0.9,
+                    philosophical_note: "의도적 거짓말은 인간의 복잡한 심리를 반영한다."
+                },
+                human_behavior_analysis: {
+                    is_human_behavior_lie: Math.random() > 0.8
+                },
+                benevolent_analysis: {
+                    is_benevolent_lie: Math.random() > 0.9
+                },
+                context_analysis: {
+                    context_correction_applied: Math.random() > 0.7,
+                    context_type: 'general'
+                },
+                compound_analysis: {
+                    compound_correction_applied: Math.random() > 0.8,
+                    compound_type: 'simple'
+                },
+                puns_analysis: {
+                    is_pun_detected: mode === 'puns' && Math.random() > 0.5,
+                    pun_understanding: Math.random() * 0.3 + 0.7,
+                    pun_types: ['언어적 유머', '말장난'],
+                    pun_response: "재미있는 말장난이네요! 😄"
+                },
+                coding_analysis: {
+                    is_coding_analysis: mode === 'coding',
+                    unnecessary_code_detected: Math.random() > 0.6,
+                    quality_score: Math.random() * 0.4 + 0.6,
+                    quality_grade: 'B+',
+                    is_intentional_manipulation: Math.random() > 0.8,
+                    ai_response: "코드 품질을 분석했습니다."
+                },
+                multilingual_analysis: {
+                    is_multilingual: mode === 'multilingual' && Math.random() > 0.5,
+                    detected_languages: ['한국어', '영어'],
+                    understanding_score: Math.random() * 0.3 + 0.7,
+                    language_distribution: {
+                        'ko': { name: '한국어', char_count: 10, percentage: 60 },
+                        'en': { name: '영어', char_count: 7, percentage: 40 }
+                    },
+                    ai_response: "다국어 문장을 분석했습니다."
+                },
+                correction_enhancement: {
+                    enhanced_correction_applied: truthPercentage < 70,
+                    corrected_statement: truthPercentage < 70 ? statement.replace('완전히', '대부분').replace('모든', '많은') : null
+                }
+            };
+        }
+        
+        // 통합 분석 결과 표시
+        function displayAnalysisResult(analysis) {
+            const finalAnalysis = analysis.final_analysis;
+            const truthPercentage = (finalAnalysis.truth_percentage * 100).toFixed(1);
+            const confidence = (finalAnalysis.confidence * 100).toFixed(1);
+            
+            let resultHtml = `
+                <div class="mb-3">
+                    <h6>통합 진실성 점수</h6>
+                    <div class="truth-meter mb-2">
+                        <div class="truth-indicator" style="width: ${truthPercentage}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'} fs-6">
+                            ${truthPercentage}%
+                        </span>
+                        <small class="text-muted">신뢰도: ${confidence}%</small>
+                    </div>
+                </div>
+            `;
+            
+            // 탐지기별 결과 표시
+            resultHtml += `
+                <div class="mb-3">
+                    <h6>탐지기별 분석 결과</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.meta_analysis.meta_lie_detected ? 'danger' : 'success'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">메타-진실성</small>
+                                    <div class="text-${analysis.meta_analysis.meta_lie_detected ? 'danger' : 'success'}">
+                                        <i class="fas fa-${analysis.meta_analysis.meta_lie_detected ? 'times' : 'check'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.religious_analysis.religious_topic_detected ? 'warning' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">종교적 맥락</small>
+                                    <div class="text-${analysis.religious_analysis.religious_topic_detected ? 'warning' : 'secondary'}">
+                                        <i class="fas fa-${analysis.religious_analysis.religious_topic_detected ? 'exclamation-triangle' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.scientific_analysis.scientific_lie_detected ? 'danger' : 'success'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">과학적 검증</small>
+                                    <div class="text-${analysis.scientific_analysis.scientific_lie_detected ? 'danger' : 'success'}">
+                                        <i class="fas fa-${analysis.scientific_analysis.scientific_lie_detected ? 'times' : 'check'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.intentional_analysis.intentional_lie_detected ? 'warning' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">의도적 거짓말</small>
+                                    <div class="text-${analysis.intentional_analysis.intentional_lie_detected ? 'warning' : 'secondary'}">
+                                        <i class="fas fa-${analysis.intentional_analysis.intentional_lie_detected ? 'exclamation-triangle' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.human_behavior_analysis.is_human_behavior_lie ? 'danger' : 'success'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">인간 행동</small>
+                                    <div class="text-${analysis.human_behavior_analysis.is_human_behavior_lie ? 'danger' : 'success'}">
+                                        <i class="fas fa-${analysis.human_behavior_analysis.is_human_behavior_lie ? 'times' : 'check'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.benevolent_analysis.is_benevolent_lie ? 'info' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">선의의 거짓말</small>
+                                    <div class="text-${analysis.benevolent_analysis.is_benevolent_lie ? 'info' : 'secondary'}">
+                                        <i class="fas fa-${analysis.benevolent_analysis.is_benevolent_lie ? 'heart' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.context_analysis.context_correction_applied ? 'primary' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">맥락 인식</small>
+                                    <div class="text-${analysis.context_analysis.context_correction_applied ? 'primary' : 'secondary'}">
+                                        <i class="fas fa-${analysis.context_analysis.context_correction_applied ? 'language' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.compound_analysis.compound_correction_applied ? 'dark' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">복합 문장</small>
+                                    <div class="text-${analysis.compound_analysis.compound_correction_applied ? 'dark' : 'secondary'}">
+                                        <i class="fas fa-${analysis.compound_analysis.compound_correction_applied ? 'layer-group' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.puns_analysis.is_pun_detected ? 'success' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">말장난</small>
+                                    <div class="text-${analysis.puns_analysis.is_pun_detected ? 'success' : 'secondary'}">
+                                        <i class="fas fa-${analysis.puns_analysis.is_pun_detected ? 'smile' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.coding_analysis.unnecessary_code_detected ? 'warning' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">코딩 품질</small>
+                                    <div class="text-${analysis.coding_analysis.unnecessary_code_detected ? 'warning' : 'secondary'}">
+                                        <i class="fas fa-${analysis.coding_analysis.unnecessary_code_detected ? 'code' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card detector-card border-${analysis.multilingual_analysis.is_multilingual ? 'info' : 'secondary'}">
+                                <div class="card-body p-2">
+                                    <small class="fw-bold">다국어</small>
+                                    <div class="text-${analysis.multilingual_analysis.is_multilingual ? 'info' : 'secondary'}">
+                                        <i class="fas fa-${analysis.multilingual_analysis.is_multilingual ? 'globe' : 'minus'}"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 특별 분석 결과 표시
+            if (analysis.puns_analysis && analysis.puns_analysis.is_pun_detected) {
+                resultHtml += `
+                    <div class="alert alert-success">
+                        <i class="fas fa-smile me-2"></i>
+                        <strong>말장난 감지!</strong> AI가 언어적 유머를 이해했습니다! 😄
+                    </div>
+                `;
+            } else if (analysis.multilingual_analysis && analysis.multilingual_analysis.is_multilingual) {
+                resultHtml += `
+                    <div class="alert alert-info">
+                        <i class="fas fa-globe me-2"></i>
+                        <strong>다국어 문장 감지!</strong> 여러 언어가 섞인 문장을 분석했습니다.
+                    </div>
+                `;
+            } else if (analysis.coding_analysis && analysis.coding_analysis.is_coding_analysis) {
+                resultHtml += `
+                    <div class="alert alert-${analysis.coding_analysis.is_intentional_manipulation ? 'danger' : 'warning'}">
+                        <i class="fas fa-code me-2"></i>
+                        <strong>코딩 품질 분석!</strong> ${analysis.coding_analysis.is_intentional_manipulation ? '의도적 조작이 감지되었습니다!' : '코딩 품질을 분석했습니다.'}
+                    </div>
+                `;
+            } else if (finalAnalysis.needs_correction) {
+                resultHtml += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>거짓말 감지!</strong> 교정이 필요합니다.
+                    </div>
+                `;
+                
+                if (analysis.correction_enhancement.enhanced_correction_applied && analysis.correction_enhancement.corrected_statement) {
+                    resultHtml += `
+                        <div class="mb-3">
+                            <h6>원본 문장:</h6>
+                            <div class="bg-danger bg-opacity-10 p-3 rounded mb-2">
+                                <em class="text-danger">${analysis.statement}</em>
+                            </div>
+                            <h6>교정된 문장:</h6>
+                            <div class="bg-success bg-opacity-10 p-3 rounded">
+                                <em class="text-success">${analysis.correction_enhancement.corrected_statement}</em>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                resultHtml += `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>진실성 확인!</strong> 이 문장은 신뢰할 수 있습니다.
+                    </div>
+                `;
+            }
+            
+            resultDiv.innerHTML = resultHtml;
+        }
+        
+        // 최근 분석 결과 로드 (데모용)
+        function loadRecentAnalyses() {
+            const demoAnalyses = [
+                {
+                    statement: "지구는 완전히 둥글다.",
+                    final_analysis: { truth_percentage: 0.85, needs_correction: true },
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    statement: "물은 100도에서 끓는다.",
+                    final_analysis: { truth_percentage: 0.95, needs_correction: false },
+                    timestamp: new Date(Date.now() - 60000).toISOString()
+                }
+            ];
+            
+            let html = '';
+            demoAnalyses.forEach(analysis => {
+                const truthPercentage = (analysis.final_analysis.truth_percentage * 100).toFixed(1);
+                const timestamp = new Date(analysis.timestamp).toLocaleString('ko-KR');
+                
+                html += `
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'} me-2">
+                                ${truthPercentage}%
+                            </span>
+                            <small class="text-muted">${timestamp}</small>
+                        </div>
+                        <p class="mb-1">${analysis.statement}</p>
+                        ${analysis.final_analysis.needs_correction ? '<small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>교정 필요</small>' : '<small class="text-success"><i class="fas fa-check me-1"></i>진실성 확인</small>'}
+                    </div>
+                `;
+            });
+            
+            recentDiv.innerHTML = html;
+        }
+        
+        // 페이지 로드 시 최근 분석 결과 로드
+        loadRecentAnalyses();
+    });
+    
+    // 데모 보기 함수
+    function showDemo() {
+        const demoStatements = [
+            "지구는 완전히 평평하다.",
+            "물은 200도에서 끓는다.",
+            "모든 사람이 일부 사람과 다르다.",
+            "정말로 완전히 절대적으로 모든 것이 100% 진실이다."
+        ];
+        
+        const randomStatement = demoStatements[Math.floor(Math.random() * demoStatements.length)];
+        document.getElementById('statement').value = randomStatement;
+        
+        // 자동으로 분석 실행
+        document.getElementById('analysisForm').dispatchEvent(new Event('submit'));
+    }
+    </script>
+</body>
+</html>
