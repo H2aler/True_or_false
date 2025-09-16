@@ -914,6 +914,9 @@
         // 페이지 로드 시 최근 분석 결과 로드
         loadRecentAnalyses();
         
+        // 분석 모드 기본값 설정
+        currentAnalysisMode = 'all';
+        
         console.log('초기화 완료');
     });
     
@@ -921,8 +924,8 @@
     window.showDemo = function() {
         console.log('데모 실행');
         
-        // 현재 선택된 분석 모드 확인
-        const currentMode = document.querySelector('input[name="analysisMode"]:checked').value;
+        // 현재 선택된 분석 모드 확인 (기본값: 'all')
+        const currentMode = currentAnalysisMode || 'all';
         
         // 모드별 데모 문장들
         const demoData = {
