@@ -59,6 +59,12 @@
 - 상세 분석 결과 테이블
 - 통계 요약 카드
 
+## 🌐 라이브 데모
+
+**GitHub Pages에서 바로 체험해보세요!**
+
+👉 **[https://h2aler.github.io/True_or_false/](https://h2aler.github.io/True_or_false/)**
+
 ## 🚀 설치 및 실행
 
 ### 1. 의존성 설치
@@ -234,5 +240,6 @@ AI 진실성 탐지기
 ---
 
 **"AI는 깨진 거울이다"** - 이 시스템으로 AI의 진실성을 측정하고 교정하여 더 신뢰할 수 있는 AI를 만들어가겠습니다.
-#   U p d a t e d  
+#   U p d a t e d 
+ 
  
