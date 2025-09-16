@@ -920,18 +920,195 @@
     // 데모 보기 함수 (전역 함수로 정의)
     window.showDemo = function() {
         console.log('데모 실행');
-        const demoStatements = [
-            "지구는 완전히 평평하다.",
-            "물은 200도에서 끓는다.",
-            "모든 사람이 일부 사람과 다르다.",
-            "정말로 완전히 절대적으로 모든 것이 100% 진실이다."
-        ];
         
-        const randomStatement = demoStatements[Math.floor(Math.random() * demoStatements.length)];
-        document.getElementById('statement').value = randomStatement;
+        // 현재 선택된 분석 모드 확인
+        const currentMode = document.querySelector('input[name="analysisMode"]:checked').value;
         
-        // 자동으로 분석 실행
-        document.getElementById('analysisForm').dispatchEvent(new Event('submit'));
+        // 모드별 데모 문장들
+        const demoData = {
+            'all': [
+                "지구는 완전히 평평하다.",
+                "물은 200도에서 끓는다.",
+                "모든 사람이 일부 사람과 다르다.",
+                "정말로 완전히 절대적으로 모든 것이 100% 진실이다.",
+                "AI는 인간보다 똑똑하다."
+            ],
+            'puns': [
+                "개는 개고양이는 고양이다.",
+                "바나나가 웃으면 바나나킥이 된다.",
+                "치킨이 닭을 닮았다.",
+                "물고기가 물에서 살면 물고기다.",
+                "고양이가 야옹하면 고양이다."
+            ],
+            'coding': [
+                "for i in range(10): print('Hello World')",
+                "if True: return False",
+                "def function(): pass",
+                "x = x + 1 if x > 0 else x - 1",
+                "try: except: finally:"
+            ],
+            'multilingual': [
+                "Hello 안녕하세요 こんにちは",
+                "I love you 사랑해요 愛してる",
+                "Good morning 좋은 아침 おはよう",
+                "Thank you 감사합니다 ありがとう",
+                "How are you? 어떻게 지내세요? 元気ですか？"
+            ]
+        };
+        
+        const statements = demoData[currentMode] || demoData['all'];
+        
+        // 데모 모달 생성
+        showDemoModal(statements, currentMode);
+    }
+    
+    // 데모 모달 표시
+    function showDemoModal(statements, mode) {
+        const modalHtml = `
+            <div class="modal fade" id="demoModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-play-circle me-2"></i>데모 보기 - ${getModeName(mode)} 모드
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-list me-2"></i>예시 문장들</h6>
+                                    <div class="list-group mb-3" id="demoStatements">
+                                        ${statements.map((stmt, index) => `
+                                            <button class="list-group-item list-group-item-action" onclick="runDemoAnalysis('${stmt.replace(/'/g, "\\'")}', '${mode}')">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span>${stmt}</span>
+                                                    <i class="fas fa-arrow-right"></i>
+                                                </div>
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-chart-line me-2"></i>분석 결과</h6>
+                                    <div id="demoResults" class="border rounded p-3" style="height: 400px; overflow-y: auto;">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-mouse-pointer fa-2x mb-2"></i>
+                                            <p>왼쪽에서 문장을 선택하여 분석 결과를 확인하세요.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                            <button type="button" class="btn btn-primary" onclick="runAllDemoAnalyses()">모든 예시 실행</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 기존 모달 제거
+        const existingModal = document.getElementById('demoModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // 새 모달 추가
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // 모달 표시
+        const modal = new bootstrap.Modal(document.getElementById('demoModal'));
+        modal.show();
+        
+        // 전역 변수에 저장
+        window.demoStatements = statements;
+        window.demoMode = mode;
+    }
+    
+    // 모드 이름 반환
+    function getModeName(mode) {
+        const modeNames = {
+            'all': '통합',
+            'puns': '말장난',
+            'coding': '코딩',
+            'multilingual': '다국어'
+        };
+        return modeNames[mode] || '통합';
+    }
+    
+    // 개별 데모 분석 실행
+    window.runDemoAnalysis = function(statement, mode) {
+        const demoResult = generateDemoResult(statement, mode);
+        displayDemoResult(demoResult);
+    }
+    
+    // 모든 데모 분석 실행
+    window.runAllDemoAnalyses = function() {
+        const resultsDiv = document.getElementById('demoResults');
+        resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">분석 중...</p></div>';
+        
+        setTimeout(() => {
+            let allResults = '';
+            window.demoStatements.forEach((statement, index) => {
+                const demoResult = generateDemoResult(statement, window.demoMode);
+                allResults += `
+                    <div class="border-bottom pb-3 mb-3">
+                        <h6 class="text-primary">예시 ${index + 1}</h6>
+                        <p class="mb-2"><strong>문장:</strong> ${statement}</p>
+                        ${formatDemoResult(demoResult)}
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = allResults;
+        }, 2000);
+    }
+    
+    // 데모 결과 표시
+    function displayDemoResult(result) {
+        const resultsDiv = document.getElementById('demoResults');
+        resultsDiv.innerHTML = `
+            <div class="border-bottom pb-3 mb-3">
+                <h6 class="text-primary">분석 결과</h6>
+                <p class="mb-2"><strong>문장:</strong> ${result.statement}</p>
+                ${formatDemoResult(result)}
+            </div>
+        `;
+    }
+    
+    // 데모 결과 포맷팅
+    function formatDemoResult(result) {
+        const truthPercentage = (result.final_analysis.truth_percentage * 100).toFixed(1);
+        const confidence = (result.final_analysis.confidence * 100).toFixed(1);
+        
+        return `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'}">
+                                ${truthPercentage}%
+                            </h5>
+                            <p class="card-text">진실성</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-info">${confidence}%</h5>
+                            <p class="card-text">신뢰도</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-${result.final_analysis.needs_correction ? 'warning' : 'success'}">
+                <i class="fas fa-${result.final_analysis.needs_correction ? 'exclamation-triangle' : 'check'} me-2"></i>
+                ${result.final_analysis.needs_correction ? '교정이 필요합니다.' : '진실성이 확인되었습니다.'}
+            </div>
+        `;
     }
     
     // 대시보드 표시 함수 (전역 함수로 정의)
