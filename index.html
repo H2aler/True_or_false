@@ -124,6 +124,9 @@
                         <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i>홈</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showDashboard()"><i class="fas fa-chart-bar me-1"></i>대시보드</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="https://github.com/H2aler/True_or_false" target="_blank">
                             <i class="fab fa-github me-1"></i>GitHub
                         </a>
@@ -406,24 +409,45 @@
             loading.classList.add('show');
             resultDiv.innerHTML = '';
             
-            // 2초 후 결과 표시 (시뮬레이션)
-            setTimeout(function() {
+            // 실제 API 호출
+            fetch('/api/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    statement: statement,
+                    context: context,
+                    mode: currentAnalysisMode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                displayAnalysisResult(data);
+                loadRecentAnalyses();
+            })
+            .catch(error => {
+                console.error('API 오류:', error);
+                // API 오류 시 데모 결과로 폴백
                 try {
                     const demoResult = generateDemoResult(statement, currentAnalysisMode);
                     displayAnalysisResult(demoResult);
                     loadRecentAnalyses();
-                } catch (error) {
-                    console.error('분석 오류:', error);
+                } catch (demoError) {
                     resultDiv.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             분석 중 오류가 발생했습니다: ${error.message}
                         </div>
                     `;
-                } finally {
-                    loading.classList.remove('show');
                 }
-            }, 2000);
+            })
+            .finally(() => {
+                loading.classList.remove('show');
+            });
         });
         
         // 데모용 결과 생성 함수
@@ -699,23 +723,49 @@
             resultDiv.innerHTML = resultHtml;
         }
         
-        // 최근 분석 결과 로드 (데모용)
+        // 최근 분석 결과 로드
         function loadRecentAnalyses() {
-            const demoAnalyses = [
-                {
-                    statement: "지구는 완전히 둥글다.",
-                    final_analysis: { truth_percentage: 0.85, needs_correction: true },
-                    timestamp: new Date().toISOString()
-                },
-                {
-                    statement: "물은 100도에서 끓는다.",
-                    final_analysis: { truth_percentage: 0.95, needs_correction: false },
-                    timestamp: new Date(Date.now() - 60000).toISOString()
+            fetch('/api/recent?limit=5')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
                 }
-            ];
+                displayRecentAnalyses(data.recent_analyses);
+            })
+            .catch(error => {
+                console.error('최근 분석 결과 로드 오류:', error);
+                // 오류 시 데모 데이터 표시
+                const demoAnalyses = [
+                    {
+                        statement: "지구는 완전히 둥글다.",
+                        final_analysis: { truth_percentage: 0.85, needs_correction: true },
+                        timestamp: new Date().toISOString()
+                    },
+                    {
+                        statement: "물은 100도에서 끓는다.",
+                        final_analysis: { truth_percentage: 0.95, needs_correction: false },
+                        timestamp: new Date(Date.now() - 60000).toISOString()
+                    }
+                ];
+                displayRecentAnalyses(demoAnalyses);
+            });
+        }
+        
+        // 최근 분석 결과 표시
+        function displayRecentAnalyses(analyses) {
+            if (!analyses || analyses.length === 0) {
+                recentDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <p>아직 분석된 문장이 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
             
             let html = '';
-            demoAnalyses.forEach(analysis => {
+            analyses.forEach(analysis => {
                 const truthPercentage = (analysis.final_analysis.truth_percentage * 100).toFixed(1);
                 const timestamp = new Date(analysis.timestamp).toLocaleString('ko-KR');
                 
@@ -757,6 +807,203 @@
         
         // 자동으로 분석 실행
         document.getElementById('analysisForm').dispatchEvent(new Event('submit'));
+    }
+    
+    // 대시보드 표시 함수
+    function showDashboard() {
+        // 대시보드 모달 생성
+        const modalHtml = `
+            <div class="modal fade" id="dashboardModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-chart-bar me-2"></i>AI 진실성 탐지기 대시보드
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="dashboardContent">
+                                <div class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">로딩 중...</span>
+                                    </div>
+                                    <p class="mt-2">대시보드 데이터를 불러오는 중...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 기존 모달 제거
+        const existingModal = document.getElementById('dashboardModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // 새 모달 추가
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // 모달 표시
+        const modal = new bootstrap.Modal(document.getElementById('dashboardModal'));
+        modal.show();
+        
+        // 대시보드 데이터 로드
+        loadDashboardData();
+    }
+    
+    // 대시보드 데이터 로드
+    function loadDashboardData() {
+        fetch('/api/dashboard')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            displayDashboard(data);
+        })
+        .catch(error => {
+            console.error('대시보드 데이터 로드 오류:', error);
+            displayDashboardError(error.message);
+        });
+    }
+    
+    // 대시보드 표시
+    function displayDashboard(data) {
+        const dashboardContent = document.getElementById('dashboardContent');
+        
+        let html = `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary">${data.total_analyses}</h3>
+                            <p class="card-text">총 분석 수</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">${(data.average_truth_percentage * 100).toFixed(1)}%</h3>
+                            <p class="card-text">평균 진실성</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">${(data.correction_rate * 100).toFixed(1)}%</h3>
+                            <p class="card-text">교정 필요율</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">${Object.keys(data.detector_stats).length}</h3>
+                            <p class="card-text">활성 탐지기</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 탐지기별 통계
+        if (Object.keys(data.detector_stats).length > 0) {
+            html += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5><i class="fas fa-cogs me-2"></i>탐지기별 성능</h5>
+                        <div class="row">
+            `;
+            
+            Object.entries(data.detector_stats).forEach(([detector, stats]) => {
+                const detectionRate = stats.total > 0 ? (stats.detected / stats.total * 100).toFixed(1) : 0;
+                html += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">${detector.replace('_analysis', '').replace('_', ' ')}</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar" style="width: ${detectionRate}%"></div>
+                                </div>
+                                <small class="text-muted">${stats.detected}/${stats.total} (${detectionRate}%)</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 최근 트렌드
+        if (data.recent_trends && data.recent_trends.length > 0) {
+            html += `
+                <div class="row">
+                    <div class="col-12">
+                        <h5><i class="fas fa-chart-line me-2"></i>최근 트렌드</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>문장</th>
+                                        <th>진실성</th>
+                                        <th>상태</th>
+                                        <th>시간</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            data.recent_trends.slice(-10).forEach(analysis => {
+                const truthPercentage = (analysis.final_analysis.truth_percentage * 100).toFixed(1);
+                const timestamp = new Date(analysis.timestamp).toLocaleString('ko-KR');
+                const status = analysis.final_analysis.needs_correction ? '교정 필요' : '정상';
+                const statusClass = analysis.final_analysis.needs_correction ? 'text-warning' : 'text-success';
+                
+                html += `
+                    <tr>
+                        <td>${analysis.statement.length > 50 ? analysis.statement.substring(0, 50) + '...' : analysis.statement}</td>
+                        <td>
+                            <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'}">
+                                ${truthPercentage}%
+                            </span>
+                        </td>
+                        <td class="${statusClass}">${status}</td>
+                        <td>${timestamp}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        dashboardContent.innerHTML = html;
+    }
+    
+    // 대시보드 오류 표시
+    function displayDashboardError(errorMessage) {
+        const dashboardContent = document.getElementById('dashboardContent');
+        dashboardContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                대시보드 데이터를 불러오는 중 오류가 발생했습니다: ${errorMessage}
+            </div>
+        `;
     }
     </script>
 </body>

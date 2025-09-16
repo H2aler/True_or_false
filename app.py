@@ -49,6 +49,125 @@ def index():
     """메인 페이지"""
     return render_template('index.html')
 
+@app.route('/api/analyze', methods=['POST'])
+def api_analyze():
+    """API: 문장 분석"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        context = data.get('context', '').strip()
+        analysis_mode = data.get('mode', 'all')
+        
+        if not statement:
+            return jsonify({'error': '문장을 입력해주세요.'}), 400
+        
+        # 분석 실행
+        analysis_result = detector.analyze_statement(statement, context)
+        
+        # 분석 모드에 따른 추가 처리
+        if analysis_mode == 'puns':
+            puns_result = puns_detector.detect_puns(statement)
+            analysis_result.puns_analysis = puns_result
+        elif analysis_mode == 'coding':
+            coding_result = coding_detector.analyze_code_quality(statement)
+            analysis_result.coding_analysis = coding_result
+        elif analysis_mode == 'multilingual':
+            multilingual_result = multilingual_analyzer.analyze_multilingual(statement)
+            analysis_result.multilingual_analysis = multilingual_result
+        
+        # 분석 결과를 딕셔너리로 변환
+        result_dict = {
+            'statement': statement,
+            'context': context,
+            'final_analysis': {
+                'truth_percentage': analysis_result.final_analysis.truth_percentage,
+                'confidence': analysis_result.final_analysis.confidence,
+                'needs_correction': analysis_result.final_analysis.needs_correction
+            },
+            'basic_analysis': analysis_result.basic_analysis.__dict__,
+            'meta_analysis': analysis_result.meta_analysis.__dict__,
+            'religious_analysis': analysis_result.religious_analysis.__dict__,
+            'scientific_analysis': analysis_result.scientific_analysis.__dict__,
+            'intentional_analysis': analysis_result.intentional_analysis.__dict__,
+            'human_behavior_analysis': analysis_result.human_behavior_analysis.__dict__,
+            'benevolent_analysis': analysis_result.benevolent_analysis.__dict__,
+            'context_analysis': analysis_result.context_analysis.__dict__,
+            'compound_analysis': analysis_result.compound_analysis.__dict__,
+            'puns_analysis': getattr(analysis_result, 'puns_analysis', {}),
+            'coding_analysis': getattr(analysis_result, 'coding_analysis', {}),
+            'multilingual_analysis': getattr(analysis_result, 'multilingual_analysis', {}),
+            'correction_enhancement': analysis_result.correction_enhancement.__dict__,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # 분석 히스토리에 추가
+        analysis_history.append(result_dict)
+        
+        # 최근 100개만 유지
+        if len(analysis_history) > 100:
+            analysis_history.pop(0)
+        
+        return jsonify(result_dict)
+        
+    except Exception as e:
+        return jsonify({'error': f'분석 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/recent', methods=['GET'])
+def api_recent():
+    """API: 최근 분석 결과"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        recent = analysis_history[-limit:] if analysis_history else []
+        return jsonify({'recent_analyses': recent})
+    except Exception as e:
+        return jsonify({'error': f'최근 분석 결과를 가져오는 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/dashboard', methods=['GET'])
+def api_dashboard():
+    """API: 대시보드 데이터"""
+    try:
+        if not analysis_history:
+            return jsonify({
+                'total_analyses': 0,
+                'average_truth_percentage': 0,
+                'correction_rate': 0,
+                'detector_stats': {},
+                'recent_trends': []
+            })
+        
+        # 통계 계산
+        total_analyses = len(analysis_history)
+        truth_percentages = [a['final_analysis']['truth_percentage'] for a in analysis_history]
+        average_truth_percentage = sum(truth_percentages) / len(truth_percentages) if truth_percentages else 0
+        
+        corrections = [a for a in analysis_history if a['final_analysis']['needs_correction']]
+        correction_rate = len(corrections) / total_analyses if total_analyses > 0 else 0
+        
+        # 탐지기별 통계
+        detector_stats = {}
+        for analysis in analysis_history:
+            for key, value in analysis.items():
+                if key.endswith('_analysis') and isinstance(value, dict):
+                    if key not in detector_stats:
+                        detector_stats[key] = {'detected': 0, 'total': 0}
+                    detector_stats[key]['total'] += 1
+                    if value.get('detected', False) or value.get('is_detected', False):
+                        detector_stats[key]['detected'] += 1
+        
+        # 최근 트렌드 (최근 20개)
+        recent_trends = analysis_history[-20:] if len(analysis_history) >= 20 else analysis_history
+        
+        return jsonify({
+            'total_analyses': total_analyses,
+            'average_truth_percentage': average_truth_percentage,
+            'correction_rate': correction_rate,
+            'detector_stats': detector_stats,
+            'recent_trends': recent_trends
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'대시보드 데이터를 가져오는 중 오류가 발생했습니다: {str(e)}'}), 500
+
 @app.route('/analyze', methods=['POST'])
 def analyze_statement():
     """통합 분석 (모든 기능 사용)"""
