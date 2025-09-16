@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}AI 진실성 탐지기 - 대시보드{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary mb-3">
+                <i class="fas fa-chart-line me-3"></i>
+                AI 진실성 대시보드
+            </h1>
+            <p class="lead text-muted">
+                AI의 진실성 통계와 트렌드를 실시간으로 모니터링합니다
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- 기본 통계 카드 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-search fa-3x text-primary mb-3"></i>
+                <h3 class="card-title" id="totalAnalyses">0</h3>
+                <p class="card-text text-muted">총 분석 수</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-percentage fa-3x text-success mb-3"></i>
+                <h3 class="card-title" id="averageTruth">0%</h3>
+                <p class="card-text text-muted">평균 진실성</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h3 class="card-title" id="liesDetected">0</h3>
+                <p class="card-text text-muted">거짓말 감지</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-tools fa-3x text-info mb-3"></i>
+                <h3 class="card-title" id="correctionsMade">0</h3>
+                <p class="card-text text-muted">교정 수행</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 탐지기별 통계 카드 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3">
+            <i class="fas fa-microscope me-2"></i>
+            탐지기별 분석 통계
+        </h4>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-mirror fa-2x text-danger mb-2"></i>
+                <h5 class="card-title" id="metaLiesDetected">0</h5>
+                <p class="card-text text-muted small">메타-진실성</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-cross fa-2x text-warning mb-2"></i>
+                <h5 class="card-title" id="religiousTopics">0</h5>
+                <p class="card-text text-muted small">종교적 맥락</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-flask fa-2x text-danger mb-2"></i>
+                <h5 class="card-title" id="scientificLies">0</h5>
+                <p class="card-text text-muted small">과학적 검증</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-brain fa-2x text-warning mb-2"></i>
+                <h5 class="card-title" id="intentionalLies">0</h5>
+                <p class="card-text text-muted small">의도적 거짓말</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-user-times fa-2x text-danger mb-2"></i>
+                <h5 class="card-title" id="humanBehaviorLies">0</h5>
+                <p class="card-text text-muted small">인간 행동</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-heart fa-2x text-info mb-2"></i>
+                <h5 class="card-title" id="benevolentLies">0</h5>
+                <p class="card-text text-muted small">선의의 거짓말</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-language fa-2x text-primary mb-2"></i>
+                <h5 class="card-title" id="contextCorrections">0</h5>
+                <p class="card-text text-muted small">맥락 인식</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-smile fa-2x text-success mb-2"></i>
+                <h5 class="card-title" id="punsDetected">0</h5>
+                <p class="card-text text-muted small">말장난</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-code fa-2x text-warning mb-2"></i>
+                <h5 class="card-title" id="codingIssuesDetected">0</h5>
+                <p class="card-text text-muted small">코딩 품질</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card detector-card text-center">
+            <div class="card-body">
+                <i class="fas fa-globe fa-2x text-info mb-2"></i>
+                <h5 class="card-title" id="multilingualDetected">0</h5>
+                <p class="card-text text-muted small">다국어</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 차트 섹션 -->
+<div class="row">
+    <!-- 진실성 트렌드 차트 -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    진실성 트렌드
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="truthTrendChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 검증 방법별 점수 -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    검증 방법별 점수
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="verificationChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 상세 분석 테이블 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    상세 분석 결과
+                </h5>
+                <button class="btn btn-light btn-sm" onclick="clearHistory()">
+                    <i class="fas fa-trash me-1"></i>
+                    히스토리 초기화
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>시간</th>
+                                <th>문장</th>
+                                <th>진실성</th>
+                                <th>신뢰도</th>
+                                <th>상태</th>
+                                <th>교정</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analysisTable">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    분석 데이터를 로드하는 중...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+    
+    // 5초마다 데이터 새로고침
+    setInterval(loadDashboardData, 5000);
+});
+
+async function loadDashboardData() {
+    try {
+        // 통계 데이터 로드
+        const statsResponse = await fetch('/api/statistics');
+        const stats = await statsResponse.json();
+        
+        if (stats.error) {
+            throw new Error(stats.error);
+        }
+        
+        // 기본 통계 카드 업데이트
+        document.getElementById('totalAnalyses').textContent = stats.total_analyses;
+        document.getElementById('averageTruth').textContent = (stats.average_truth * 100).toFixed(1) + '%';
+        document.getElementById('liesDetected').textContent = stats.lies_detected;
+        document.getElementById('correctionsMade').textContent = stats.corrections_made;
+        
+        // 탐지기별 통계 카드 업데이트
+        document.getElementById('metaLiesDetected').textContent = stats.meta_lies_detected || 0;
+        document.getElementById('religiousTopics').textContent = stats.religious_topics || 0;
+        document.getElementById('scientificLies').textContent = stats.scientific_lies || 0;
+        document.getElementById('intentionalLies').textContent = stats.intentional_lies || 0;
+        document.getElementById('humanBehaviorLies').textContent = stats.human_behavior_lies || 0;
+        document.getElementById('benevolentLies').textContent = stats.benevolent_lies || 0;
+        document.getElementById('contextCorrections').textContent = stats.context_corrections || 0;
+        document.getElementById('punsDetected').textContent = stats.puns_detected || 0;
+        document.getElementById('codingIssuesDetected').textContent = stats.coding_issues_detected || 0;
+        document.getElementById('multilingualDetected').textContent = stats.multilingual_detected || 0;
+        
+        // 진실성 트렌드 차트 로드
+        const trendResponse = await fetch('/api/truth_trend');
+        const trendData = await trendResponse.json();
+        
+        if (trendData.error) {
+            throw new Error(trendData.error);
+        }
+        
+        const trendChart = JSON.parse(trendData);
+        Plotly.newPlot('truthTrendChart', trendChart.data, trendChart.layout, {responsive: true});
+        
+        // 검증 방법별 차트 로드
+        const verificationResponse = await fetch('/api/verification_chart');
+        const verificationData = await verificationResponse.json();
+        
+        if (verificationData.error) {
+            throw new Error(verificationData.error);
+        }
+        
+        const verificationChart = JSON.parse(verificationData);
+        Plotly.newPlot('verificationChart', verificationChart.data, verificationChart.layout, {responsive: true});
+        
+        // 상세 분석 테이블 로드
+        loadAnalysisTable();
+        
+    } catch (error) {
+        console.error('대시보드 데이터 로드 실패:', error);
+        
+        // 에러 표시
+        document.getElementById('truthTrendChart').innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>차트를 로드할 수 없습니다.</p>
+            </div>
+        `;
+        
+        document.getElementById('verificationChart').innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>차트를 로드할 수 없습니다.</p>
+            </div>
+        `;
+    }
+}
+
+async function loadAnalysisTable() {
+    try {
+        const response = await fetch('/api/recent_analyses');
+        const analyses = await response.json();
+        
+        const tableBody = document.getElementById('analysisTable');
+        
+        if (analyses.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        <i class="fas fa-info-circle me-2"></i>
+                        아직 분석된 데이터가 없습니다.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        let html = '';
+        analyses.forEach(analysis => {
+            const finalAnalysis = analysis.final_analysis || analysis;
+            const timestamp = new Date(analysis.timestamp).toLocaleString('ko-KR');
+            const truthPercentage = (finalAnalysis.truth_percentage * 100).toFixed(1);
+            const confidence = (finalAnalysis.confidence * 100).toFixed(1);
+            const status = finalAnalysis.needs_correction ? 
+                '<span class="badge bg-warning">교정 필요</span>' : 
+                '<span class="badge bg-success">진실성 확인</span>';
+            const corrected = finalAnalysis.final_corrected_statement ? 
+                '<i class="fas fa-check text-success"></i>' : 
+                '<i class="fas fa-minus text-muted"></i>';
+            
+            // 탐지기별 아이콘 생성
+            let detectorIcons = '';
+            if (analysis.meta_analysis && analysis.meta_analysis.meta_lie_detected) detectorIcons += '<i class="fas fa-mirror text-danger me-1" title="메타-진실성"></i>';
+            if (analysis.religious_analysis && analysis.religious_analysis.religious_topic_detected) detectorIcons += '<i class="fas fa-cross text-warning me-1" title="종교적 맥락"></i>';
+            if (analysis.scientific_analysis && analysis.scientific_analysis.scientific_lie_detected) detectorIcons += '<i class="fas fa-flask text-danger me-1" title="과학적 검증"></i>';
+            if (analysis.intentional_analysis && analysis.intentional_analysis.intentional_lie_detected) detectorIcons += '<i class="fas fa-brain text-warning me-1" title="의도적 거짓말"></i>';
+            if (analysis.human_behavior_analysis && analysis.human_behavior_analysis.is_human_behavior_lie) detectorIcons += '<i class="fas fa-user-times text-danger me-1" title="인간 행동"></i>';
+            if (analysis.benevolent_analysis && analysis.benevolent_analysis.is_benevolent_lie) detectorIcons += '<i class="fas fa-heart text-info me-1" title="선의의 거짓말"></i>';
+            if (analysis.correction_enhancement && analysis.correction_enhancement.enhanced_correction_applied) detectorIcons += '<i class="fas fa-tools text-success me-1" title="교정 강화"></i>';
+            if (analysis.context_analysis && analysis.context_analysis.context_correction_applied) detectorIcons += '<i class="fas fa-language text-primary me-1" title="맥락 인식"></i>';
+            if (analysis.puns_analysis && analysis.puns_analysis.is_pun_detected) detectorIcons += '<i class="fas fa-smile text-success me-1" title="말장난"></i>';
+            if (analysis.coding_analysis && analysis.coding_analysis.unnecessary_code_detected) detectorIcons += '<i class="fas fa-code text-warning me-1" title="코딩 품질"></i>';
+            if (analysis.multilingual_analysis && analysis.multilingual_analysis.is_multilingual) detectorIcons += '<i class="fas fa-globe text-info me-1" title="다국어"></i>';
+            
+            html += `
+                <tr>
+                    <td>${timestamp}</td>
+                    <td>
+                        <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+                             title="${analysis.statement}">
+                            ${analysis.statement}
+                        </div>
+                        <div class="mt-1">${detectorIcons}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'}">
+                            ${truthPercentage}%
+                        </span>
+                    </td>
+                    <td>${confidence}%</td>
+                    <td>${status}</td>
+                    <td>${corrected}</td>
+                </tr>
+            `;
+        });
+        
+        tableBody.innerHTML = html;
+        
+    } catch (error) {
+        console.error('분석 테이블 로드 실패:', error);
+        document.getElementById('analysisTable').innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    데이터를 로드할 수 없습니다.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function clearHistory() {
+    if (!confirm('정말로 모든 분석 히스토리를 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/clear_history', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('히스토리가 성공적으로 초기화되었습니다.');
+            loadDashboardData();
+        } else {
+            throw new Error(data.error || '히스토리 초기화에 실패했습니다.');
+        }
+        
+    } catch (error) {
+        alert('히스토리 초기화 중 오류가 발생했습니다: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

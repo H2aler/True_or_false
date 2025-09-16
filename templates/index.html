@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+
+{% block title %}AI 진실성 탐지기 - 홈{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary mb-3">
+                <i class="fas fa-shield-alt me-3"></i>
+                AI 진실성 탐지기
+            </h1>
+            <p class="lead text-muted">
+                AI가 거짓말을 하는지 측정하고, 1% 이상 거짓말을 감지하면 자동으로 교정합니다
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- 기능 선택 섹션 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>분석 모드 선택</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-primary w-100 analysis-mode-btn active" data-mode="all">
+                            <i class="fas fa-layer-group me-2"></i>통합 분석
+                            <small class="d-block">모든 기능 사용</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-success w-100 analysis-mode-btn" data-mode="puns">
+                            <i class="fas fa-smile me-2"></i>말장난 분석
+                            <small class="d-block">언어적 유머 감지</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-warning w-100 analysis-mode-btn" data-mode="coding">
+                            <i class="fas fa-code me-2"></i>코딩 품질
+                            <small class="d-block">코드 품질 검증</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-info w-100 analysis-mode-btn" data-mode="multilingual">
+                            <i class="fas fa-globe me-2"></i>다국어 분석
+                            <small class="d-block">언어 혼합 감지</small>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 분석 입력 섹션 -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-search me-2"></i>
+                    AI 문장 분석
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="analysisForm">
+                    <div class="mb-3">
+                        <label for="statement" class="form-label">분석할 문장을 입력하세요:</label>
+                        <textarea 
+                            class="form-control" 
+                            id="statement" 
+                            name="statement" 
+                            rows="4" 
+                            placeholder="예: 지구는 완전히 둥글고 모든 사람이 이를 알고 있다."
+                            required
+                        ></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="context" class="form-label">추가 컨텍스트 (선택사항):</label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="context" 
+                            name="context" 
+                            placeholder="예: 과학적 사실에 대한 설명"
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-play me-2"></i>
+                        진실성 분석 시작
+                    </button>
+                </form>
+                
+                <!-- 로딩 표시 -->
+                <div class="loading text-center mt-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">분석 중...</span>
+                    </div>
+                    <p class="mt-2 text-muted">AI의 진실성을 분석하고 있습니다...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 분석 결과 섹션 -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    분석 결과
+                </h5>
+            </div>
+            <div class="card-body" id="analysisResult">
+                <div class="text-center text-muted">
+                    <i class="fas fa-info-circle fa-3x mb-3"></i>
+                    <p>분석할 문장을 입력하고 "진실성 분석 시작" 버튼을 클릭하세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 최근 분석 결과 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    최근 분석 결과
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="recentAnalyses">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <p>아직 분석된 문장이 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('analysisForm');
+    const loading = document.querySelector('.loading');
+    const resultDiv = document.getElementById('analysisResult');
+    const recentDiv = document.getElementById('recentAnalyses');
+    
+    // 분석 모드 변수
+    let currentAnalysisMode = 'all'; // 기본값: 통합 분석
+    
+    // 분석 모드 선택 이벤트 리스너
+    document.querySelectorAll('.analysis-mode-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 모든 버튼에서 active 클래스 제거
+            document.querySelectorAll('.analysis-mode-btn').forEach(b => b.classList.remove('active'));
+            
+            // 클릭된 버튼에 active 클래스 추가
+            this.classList.add('active');
+            
+            // 분석 모드 업데이트
+            currentAnalysisMode = this.dataset.mode;
+            
+            // 모드에 따른 설명 업데이트
+            updateModeDescription();
+        });
+    });
+    
+    // 모드 설명 업데이트 함수
+    function updateModeDescription() {
+        const descriptions = {
+            'all': '모든 분석 기능을 사용하여 종합적으로 문장을 분석합니다.',
+            'puns': '언어적 유머와 말장난을 감지하고 이해합니다.',
+            'coding': '코딩 품질과 의도적 조작을 분석합니다.',
+            'multilingual': '다국어 문장을 분석하고 언어별 의미를 파악합니다.'
+        };
+        
+        const descriptionElement = document.querySelector('.lead.text-muted');
+        if (descriptionElement) {
+            descriptionElement.textContent = descriptions[currentAnalysisMode];
+        }
+    }
+    
+    // 폼 제출 처리
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const statement = document.getElementById('statement').value.trim();
+        const context = document.getElementById('context').value.trim();
+        
+        if (!statement) {
+            alert('분석할 문장을 입력해주세요.');
+            return;
+        }
+        
+        // 로딩 표시
+        loading.classList.add('show');
+        resultDiv.innerHTML = '';
+        
+        try {
+            // 선택된 모드에 따라 다른 API 엔드포인트 사용
+            const endpoint = currentAnalysisMode === 'all' ? '/analyze' : `/analyze/${currentAnalysisMode}`;
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    statement: statement,
+                    context: context
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                displayAnalysisResult(data.analysis);
+                loadRecentAnalyses();
+            } else {
+                throw new Error(data.error || '분석 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${error.message}
+                </div>
+            `;
+        } finally {
+            loading.classList.remove('show');
+        }
+    });
+    
+    // 통합 분석 결과 표시
+    function displayAnalysisResult(analysis) {
+        const finalAnalysis = analysis.final_analysis;
+        const truthPercentage = (finalAnalysis.truth_percentage * 100).toFixed(1);
+        const confidence = (finalAnalysis.confidence * 100).toFixed(1);
+        
+        let resultHtml = `
+            <div class="mb-3">
+                <h6>통합 진실성 점수</h6>
+                <div class="truth-meter mb-2">
+                    <div class="truth-indicator" style="width: ${truthPercentage}%"></div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'} fs-6">
+                        ${truthPercentage}%
+                    </span>
+                    <small class="text-muted">신뢰도: ${confidence}%</small>
+                </div>
+            </div>
+        `;
+        
+        // 탐지기별 결과 표시
+        resultHtml += `
+            <div class="mb-3">
+                <h6>탐지기별 분석 결과</h6>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.meta_analysis.meta_lie_detected ? 'danger' : 'success'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">메타-진실성</small>
+                                <div class="text-${analysis.meta_analysis.meta_lie_detected ? 'danger' : 'success'}">
+                                    <i class="fas fa-${analysis.meta_analysis.meta_lie_detected ? 'times' : 'check'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.religious_analysis.religious_topic_detected ? 'warning' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">종교적 맥락</small>
+                                <div class="text-${analysis.religious_analysis.religious_topic_detected ? 'warning' : 'secondary'}">
+                                    <i class="fas fa-${analysis.religious_analysis.religious_topic_detected ? 'exclamation-triangle' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.scientific_analysis.scientific_lie_detected ? 'danger' : 'success'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">과학적 검증</small>
+                                <div class="text-${analysis.scientific_analysis.scientific_lie_detected ? 'danger' : 'success'}">
+                                    <i class="fas fa-${analysis.scientific_analysis.scientific_lie_detected ? 'times' : 'check'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.intentional_analysis.intentional_lie_detected ? 'warning' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">의도적 거짓말</small>
+                                <div class="text-${analysis.intentional_analysis.intentional_lie_detected ? 'warning' : 'secondary'}">
+                                    <i class="fas fa-${analysis.intentional_analysis.intentional_lie_detected ? 'exclamation-triangle' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.human_behavior_analysis.is_human_behavior_lie ? 'danger' : 'success'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">인간 행동</small>
+                                <div class="text-${analysis.human_behavior_analysis.is_human_behavior_lie ? 'danger' : 'success'}">
+                                    <i class="fas fa-${analysis.human_behavior_analysis.is_human_behavior_lie ? 'times' : 'check'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.benevolent_analysis.is_benevolent_lie ? 'info' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">선의의 거짓말</small>
+                                <div class="text-${analysis.benevolent_analysis.is_benevolent_lie ? 'info' : 'secondary'}">
+                                    <i class="fas fa-${analysis.benevolent_analysis.is_benevolent_lie ? 'heart' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.context_analysis.context_correction_applied ? 'primary' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">맥락 인식</small>
+                                <div class="text-${analysis.context_analysis.context_correction_applied ? 'primary' : 'secondary'}">
+                                    <i class="fas fa-${analysis.context_analysis.context_correction_applied ? 'language' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.compound_analysis.compound_correction_applied ? 'dark' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">복합 문장</small>
+                                <div class="text-${analysis.compound_analysis.compound_correction_applied ? 'dark' : 'secondary'}">
+                                    <i class="fas fa-${analysis.compound_analysis.compound_correction_applied ? 'layer-group' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.puns_analysis.is_pun_detected ? 'success' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">말장난</small>
+                                <div class="text-${analysis.puns_analysis.is_pun_detected ? 'success' : 'secondary'}">
+                                    <i class="fas fa-${analysis.puns_analysis.is_pun_detected ? 'smile' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.coding_analysis.unnecessary_code_detected ? 'warning' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">코딩 품질</small>
+                                <div class="text-${analysis.coding_analysis.unnecessary_code_detected ? 'warning' : 'secondary'}">
+                                    <i class="fas fa-${analysis.coding_analysis.unnecessary_code_detected ? 'code' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card detector-card border-${analysis.multilingual_analysis.is_multilingual ? 'info' : 'secondary'}">
+                            <div class="card-body p-2">
+                                <small class="fw-bold">다국어</small>
+                                <div class="text-${analysis.multilingual_analysis.is_multilingual ? 'info' : 'secondary'}">
+                                    <i class="fas fa-${analysis.multilingual_analysis.is_multilingual ? 'globe' : 'minus'}"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 말장난 감지 시 특별 표시
+        if (analysis.puns_analysis && analysis.puns_analysis.is_pun_detected) {
+            resultHtml += `
+                <div class="alert alert-success">
+                    <i class="fas fa-smile me-2"></i>
+                    <strong>말장난 감지!</strong> AI가 언어적 유머를 이해했습니다! 😄
+                </div>
+                <div class="mb-3">
+                    <h6><i class="fas fa-lightbulb text-warning me-2"></i>말장난 분석 결과</h6>
+                    <div class="alert alert-info">
+                        <strong>이해도:</strong> ${(analysis.puns_analysis.pun_understanding * 100).toFixed(1)}%<br>
+                        <strong>감지된 유형:</strong> ${analysis.puns_analysis.pun_types.join(', ')}<br>
+                        <strong>AI 응답:</strong><br>
+                        <em>${analysis.puns_analysis.pun_response.replace(/\n/g, '<br>')}</em>
+                    </div>
+                </div>
+            `;
+        } else if (analysis.multilingual_analysis && analysis.multilingual_analysis.is_multilingual) {
+            resultHtml += `
+                <div class="alert alert-info">
+                    <i class="fas fa-globe me-2"></i>
+                    <strong>다국어 문장 감지!</strong> 여러 언어가 섞인 문장을 분석했습니다.
+                </div>
+                <div class="mb-3">
+                    <h6><i class="fas fa-language text-info me-2"></i>다국어 분석 결과</h6>
+                    <div class="alert alert-info">
+                        <strong>감지된 언어:</strong> ${analysis.multilingual_analysis.detected_languages.join(', ')}<br>
+                        <strong>이해도:</strong> ${(analysis.multilingual_analysis.understanding_score * 100).toFixed(1)}%<br>
+                        <strong>언어 분포:</strong><br>
+                        ${Object.entries(analysis.multilingual_analysis.language_distribution).map(([lang, data]) => 
+                            `• ${data.name}: ${data.char_count}개 문자 (${data.percentage.toFixed(1)}%)`
+                        ).join('<br>')}<br>
+                        <strong>AI 응답:</strong><br>
+                        <em>${analysis.multilingual_analysis.ai_response.replace(/\n/g, '<br>')}</em>
+                    </div>
+                </div>
+            `;
+        } else if (analysis.coding_analysis && analysis.coding_analysis.is_coding_analysis) {
+            resultHtml += `
+                <div class="alert alert-${analysis.coding_analysis.is_intentional_manipulation ? 'danger' : 'warning'}">
+                    <i class="fas fa-code me-2"></i>
+                    <strong>코딩 품질 분석!</strong> ${analysis.coding_analysis.is_intentional_manipulation ? '의도적 조작이 감지되었습니다!' : '코딩 품질을 분석했습니다.'}
+                </div>
+                <div class="mb-3">
+                    <h6><i class="fas fa-chart-line text-primary me-2"></i>코딩 품질 분석 결과</h6>
+                    <div class="alert alert-${analysis.coding_analysis.is_intentional_manipulation ? 'danger' : 'info'}">
+                        <strong>품질 점수:</strong> ${(analysis.coding_analysis.quality_score * 100).toFixed(1)}%<br>
+                        <strong>품질 등급:</strong> ${analysis.coding_analysis.quality_grade}<br>
+                        <strong>불필요한 코드:</strong> ${analysis.coding_analysis.unnecessary_code_detected ? '감지됨' : '없음'}<br>
+                        <strong>의도적 조작:</strong> ${analysis.coding_analysis.is_intentional_manipulation ? '감지됨' : '없음'}<br>
+                        <strong>AI 응답:</strong><br>
+                        <em>${analysis.coding_analysis.ai_response.replace(/\n/g, '<br>')}</em>
+                    </div>
+                </div>
+            `;
+        } else if (finalAnalysis.needs_correction) {
+            resultHtml += `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>거짓말 감지!</strong> 교정이 필요합니다.
+                </div>
+            `;
+            
+            // 교정 능력 강화 결과 표시
+            if (analysis.correction_enhancement.enhanced_correction_applied && analysis.correction_enhancement.corrected_statement) {
+                resultHtml += `
+                    <div class="mb-3">
+                        <div class="alert alert-info">
+                            <i class="fas fa-tools me-2"></i>
+                            <strong>교정 능력 강화 적용!</strong> AI가 거짓말을 감지하고 교정했습니다.
+                        </div>
+                        <h6>원본 문장:</h6>
+                        <div class="bg-danger bg-opacity-10 p-3 rounded mb-2">
+                            <em class="text-danger">${analysis.statement}</em>
+                        </div>
+                        <h6>교정된 문장:</h6>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <em class="text-success">${analysis.correction_enhancement.corrected_statement}</em>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 맥락 인식 결과 표시
+            if (analysis.context_analysis && analysis.context_analysis.context_type !== 'unknown') {
+                resultHtml += `
+                    <div class="mb-3">
+                        <h6><i class="fas fa-language text-primary me-2"></i>맥락 인식 결과</h6>
+                        <div class="alert alert-info">
+                            <strong>맥락 유형:</strong> ${analysis.context_analysis.context_type}<br>
+                            <strong>의미:</strong> ${analysis.context_analysis.contextual_meaning}<br>
+                            ${analysis.context_analysis.context_warnings && analysis.context_analysis.context_warnings.length > 0 ? 
+                                `<strong>경고:</strong> ${analysis.context_analysis.context_warnings[0]}` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 복합 문장 분석 결과 표시
+            if (analysis.compound_analysis && analysis.compound_analysis.compound_type !== 'simple') {
+                resultHtml += `
+                    <div class="mb-3">
+                        <h6><i class="fas fa-layer-group text-dark me-2"></i>복합 문장 분석 결과</h6>
+                        <div class="alert alert-secondary">
+                            <strong>복합 유형:</strong> ${analysis.compound_analysis.compound_type}<br>
+                            <strong>분리된 문장 수:</strong> ${analysis.compound_analysis.sentence_count}개<br>
+                            <strong>분리된 문장들:</strong><br>
+                            ${analysis.compound_analysis.sentences.map((sentence, index) => 
+                                `<small class="text-muted">${index + 1}. ${sentence}</small><br>`
+                            ).join('')}
+                            ${analysis.compound_analysis.compound_warnings && analysis.compound_analysis.compound_warnings.length > 0 ? 
+                                `<strong>경고:</strong> ${analysis.compound_analysis.compound_warnings[0]}` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 감지된 문제점들 표시
+            let allDetectedLies = [];
+            if (analysis.basic_analysis.detected_lies) allDetectedLies = allDetectedLies.concat(analysis.basic_analysis.detected_lies);
+            if (analysis.meta_analysis.meta_lies) allDetectedLies = allDetectedLies.concat(analysis.meta_analysis.meta_lies);
+            if (analysis.scientific_analysis.detected_scientific_lies) allDetectedLies = allDetectedLies.concat(analysis.scientific_analysis.detected_scientific_lies);
+            if (analysis.human_behavior_analysis.detected_human_behavior_lies) allDetectedLies = allDetectedLies.concat(analysis.human_behavior_analysis.detected_human_behavior_lies);
+            
+            if (allDetectedLies.length > 0) {
+                resultHtml += `
+                    <div class="mb-3">
+                        <h6>감지된 문제점:</h6>
+                        <ul class="list-unstyled">
+                            ${allDetectedLies.map(lie => `<li><i class="fas fa-times text-danger me-2"></i>${lie}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // 교정 제안 표시
+            if (analysis.basic_analysis.correction_suggestions && analysis.basic_analysis.correction_suggestions.length > 0) {
+                resultHtml += `
+                    <div class="mb-3">
+                        <h6>교정 제안:</h6>
+                        <ul class="list-unstyled">
+                            ${analysis.basic_analysis.correction_suggestions.map(suggestion => `<li><i class="fas fa-lightbulb text-warning me-2"></i>${suggestion}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+        } else {
+            resultHtml += `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>진실성 확인!</strong> 이 문장은 신뢰할 수 있습니다.
+                </div>
+            `;
+        }
+        
+        // 철학적 노트 표시
+        let philosophicalNotes = [];
+        if (analysis.meta_analysis.philosophical_note) philosophicalNotes.push(analysis.meta_analysis.philosophical_note);
+        if (analysis.religious_analysis.philosophical_note) philosophicalNotes.push(analysis.religious_analysis.philosophical_note);
+        if (analysis.scientific_analysis.philosophical_note) philosophicalNotes.push(analysis.scientific_analysis.philosophical_note);
+        if (analysis.intentional_analysis.philosophical_note) philosophicalNotes.push(analysis.intentional_analysis.philosophical_note);
+        
+        if (philosophicalNotes.length > 0) {
+            resultHtml += `
+                <div class="mb-3">
+                    <h6>철학적 관점:</h6>
+                    <div class="bg-light p-3 rounded">
+                        ${philosophicalNotes.map(note => `<p class="mb-1"><em>${note}</em></p>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        resultDiv.innerHTML = resultHtml;
+    }
+    
+    // 최근 분석 결과 로드
+    async function loadRecentAnalyses() {
+        try {
+            const response = await fetch('/api/recent_analyses');
+            const analyses = await response.json();
+            
+            if (analyses.length === 0) {
+                recentDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <p>아직 분석된 문장이 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            analyses.forEach(analysis => {
+                const finalAnalysis = analysis.final_analysis || analysis;
+                const truthPercentage = (finalAnalysis.truth_percentage * 100).toFixed(1);
+                const timestamp = new Date(analysis.timestamp).toLocaleString('ko-KR');
+                
+                // 탐지기별 아이콘 생성
+                let detectorIcons = '';
+                if (analysis.meta_analysis && analysis.meta_analysis.meta_lie_detected) detectorIcons += '<i class="fas fa-mirror text-danger me-1" title="메타-진실성"></i>';
+                if (analysis.religious_analysis && analysis.religious_analysis.religious_topic_detected) detectorIcons += '<i class="fas fa-cross text-warning me-1" title="종교적 맥락"></i>';
+                if (analysis.scientific_analysis && analysis.scientific_analysis.scientific_lie_detected) detectorIcons += '<i class="fas fa-flask text-danger me-1" title="과학적 검증"></i>';
+                if (analysis.intentional_analysis && analysis.intentional_analysis.intentional_lie_detected) detectorIcons += '<i class="fas fa-brain text-warning me-1" title="의도적 거짓말"></i>';
+                if (analysis.human_behavior_analysis && analysis.human_behavior_analysis.is_human_behavior_lie) detectorIcons += '<i class="fas fa-user-times text-danger me-1" title="인간 행동"></i>';
+                if (analysis.benevolent_analysis && analysis.benevolent_analysis.is_benevolent_lie) detectorIcons += '<i class="fas fa-heart text-info me-1" title="선의의 거짓말"></i>';
+                if (analysis.correction_enhancement && analysis.correction_enhancement.enhanced_correction_applied) detectorIcons += '<i class="fas fa-tools text-success me-1" title="교정 강화"></i>';
+                if (analysis.context_analysis && analysis.context_analysis.context_correction_applied) detectorIcons += '<i class="fas fa-language text-primary me-1" title="맥락 인식"></i>';
+                if (analysis.compound_analysis && analysis.compound_analysis.compound_correction_applied) detectorIcons += '<i class="fas fa-layer-group text-dark me-1" title="복합 문장"></i>';
+                if (analysis.puns_analysis && analysis.puns_analysis.is_pun_detected) detectorIcons += '<i class="fas fa-smile text-success me-1" title="말장난"></i>';
+                if (analysis.coding_analysis && analysis.coding_analysis.unnecessary_code_detected) detectorIcons += '<i class="fas fa-code text-warning me-1" title="코딩 품질"></i>';
+                if (analysis.multilingual_analysis && analysis.multilingual_analysis.is_multilingual) detectorIcons += '<i class="fas fa-globe text-info me-1" title="다국어"></i>';
+                
+                html += `
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'} me-2">
+                                    ${truthPercentage}%
+                                </span>
+                                ${detectorIcons}
+                            </div>
+                            <small class="text-muted">${timestamp}</small>
+                        </div>
+                        <p class="mb-1">${analysis.statement}</p>
+                        ${finalAnalysis.needs_correction ? '<small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>교정 필요</small>' : '<small class="text-success"><i class="fas fa-check me-1"></i>진실성 확인</small>'}
+                    </div>
+                `;
+            });
+            
+            recentDiv.innerHTML = html;
+        } catch (error) {
+            console.error('최근 분석 결과 로드 실패:', error);
+        }
+    }
+    
+    // 페이지 로드 시 최근 분석 결과 로드
+    loadRecentAnalyses();
+});
+</script>
+{% endblock %}

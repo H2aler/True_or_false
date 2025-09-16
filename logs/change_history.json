@@ -1,0 +1,402 @@
+{
+  "versions": [
+    {
+      "version": "v2.1.0",
+      "date": "2025-09-04",
+      "description": "로그 시스템 구축",
+      "changes": [],
+      "reason": "변경사항 추적 시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T10:54:45.307425"
+    },
+    {
+      "version": "v2.1.1",
+      "date": "2025-09-04",
+      "description": "사용 가이드 및 추적 시스템 개선",
+      "changes": [],
+      "reason": "사용 가이드 문서 추가 및 변경사항 추적 대상 파일 확장",
+      "test_results": "",
+      "timestamp": "2025-09-04T10:59:39.924437"
+    },
+    {
+      "version": "v2.2.0",
+      "date": "2025-09-04",
+      "description": "AI 자동 교정 시스템 구현",
+      "changes": [
+        {
+          "file": "ai_truth_detector.py",
+          "previous_hash": "9005369803e3e9647961ce2d92a52b6f",
+          "current_hash": "2f0fd13fb25867a4a8f7d0f354bf422c",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:11:55.239997",
+          "size": 24844
+        },
+        {
+          "file": "app.py",
+          "previous_hash": "a8137407ce4aa56b76c3e157125881de",
+          "current_hash": "489061d00d29091eaed7e03f04cda373",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:11:55.241001",
+          "size": 7671
+        },
+        {
+          "file": "templates/index.html",
+          "previous_hash": "a2eb2e5ea100f89aa34e6ff00ac1b92b",
+          "current_hash": "bbb3d3973c2c0707c07ddcaf1280b514",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:11:55.241001",
+          "size": 12347
+        },
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "0cc2ea2e10c3d84d4d38974c3260d770",
+          "current_hash": "ab4cfa7f0eb3fe1b5ef2a712adf79c43",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:11:55.242996",
+          "size": 6387
+        }
+      ],
+      "reason": "1% 이상 거짓말 감지 시 자동 교정 기능 완성, 웹 UI 통합, 테스트 시스템 구축",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:11:55.245479"
+    },
+    {
+      "version": "v2.2.1",
+      "date": "2025-09-04",
+      "description": "웹 UI 자동 교정 표시 수정",
+      "changes": [
+        {
+          "file": "app.py",
+          "previous_hash": "489061d00d29091eaed7e03f04cda373",
+          "current_hash": "c60d2e2a6db8a2c6d89aa18f4c6f91cc",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:17:21.775636",
+          "size": 7608
+        },
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "ab4cfa7f0eb3fe1b5ef2a712adf79c43",
+          "current_hash": "4adb5313d627ea5ffa8d711bcfb83695",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:17:21.779696",
+          "size": 6738
+        }
+      ],
+      "reason": "Flask 앱에서 자동 교정 정보가 웹 UI에 제대로 표시되도록 수정",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:17:21.780692"
+    },
+    {
+      "version": "v2.3.0",
+      "date": "2025-09-04",
+      "description": "메타-진실성 탐지기 구현",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "4adb5313d627ea5ffa8d711bcfb83695",
+          "current_hash": "09a0a3ee0d6e316f9a33f16348ac02ec",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:26:46.413036",
+          "size": 7019
+        }
+      ],
+      "reason": "진실성 탐지기 자체의 거짓말을 탐지하고 교정하는 메타-시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:26:46.414033"
+    },
+    {
+      "version": "v2.4.0",
+      "date": "2025-09-04",
+      "description": "종교적 맥락 인식 시스템 구현",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "09a0a3ee0d6e316f9a33f16348ac02ec",
+          "current_hash": "102406756fb65eff55b505d7bc50328b",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:30:34.042932",
+          "size": 7297
+        }
+      ],
+      "reason": "종교적/신학적 주제에 대한 진실성 탐지의 한계를 인식하고 적절히 처리하는 시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:30:34.044925"
+    },
+    {
+      "version": "v2.5.0",
+      "date": "2025-09-04",
+      "description": "강화된 과학적 사실 검증 시스템 구현",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "102406756fb65eff55b505d7bc50328b",
+          "current_hash": "8b094a1c30002e6eb2efde0a9920755f",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:34:35.350702",
+          "size": 7609
+        }
+      ],
+      "reason": "기본적인 과학적 사실에 대한 거짓말을 확실히 감지하고 교정하는 시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:34:35.352699"
+    },
+    {
+      "version": "v2.6.0",
+      "date": "2025-09-04",
+      "description": "메타-진실성 탐지기의 한계 발견",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "8b094a1c30002e6eb2efde0a9920755f",
+          "current_hash": "5b26ed8d093f8ce9dec367e24d7e6fa0",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:40:58.584166",
+          "size": 7917
+        }
+      ],
+      "reason": "메타-진실성 탐지기 자체도 완벽하지 않음을 발견하고, AI 시스템의 근본적 한계를 인정",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:40:58.586115"
+    },
+    {
+      "version": "v2.7.0",
+      "date": "2025-09-04",
+      "description": "의도적 거짓말 탐지 시스템 구현",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "5b26ed8d093f8ce9dec367e24d7e6fa0",
+          "current_hash": "e19d703acce0e1552ab1408355364f7f",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:43:26.949271",
+          "size": 8229
+        }
+      ],
+      "reason": "질문자가 의도적으로 거짓말을 하여 진실성을 테스트하려는 의도를 탐지하고 적절히 응답하는 시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:43:26.951175"
+    },
+    {
+      "version": "v2.8.0",
+      "date": "2025-09-04",
+      "description": "인간 행동 패턴 인식 시스템 구현",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "e19d703acce0e1552ab1408355364f7f",
+          "current_hash": "2ab5910c68fb03e5a4d96f60979f26de",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:47:09.527951",
+          "size": 8568
+        }
+      ],
+      "reason": "인간의 기본적인 능력에 대한 명확한 진실성 판단과 교정을 수행하는 시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:47:09.531935"
+    },
+    {
+      "version": "v2.9.0",
+      "date": "2025-09-04",
+      "description": "선의의 거짓말 인식 시스템 구현",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "2ab5910c68fb03e5a4d96f60979f26de",
+          "current_hash": "58196eaac5ffcec6708cd4f492db07ed",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:51:40.884609",
+          "size": 8874
+        }
+      ],
+      "reason": "인간의 거짓말이 선의적일 수 있음을 인정하고, 거짓말의 복잡성을 이해하는 시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:51:40.886506"
+    },
+    {
+      "version": "v2.10.0",
+      "date": "2025-09-04",
+      "description": "교정 능력 강화 시스템 구현",
+      "changes": [
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "58196eaac5ffcec6708cd4f492db07ed",
+          "current_hash": "778b6d496656e4da8b4bf5edcd06e8e9",
+          "git_status": "??",
+          "timestamp": "2025-09-04T11:54:52.267312",
+          "size": 9189
+        }
+      ],
+      "reason": "AI가 거짓말을 감지하고 교정할 수 있는 능력을 강화하는 시스템 추가",
+      "test_results": "",
+      "timestamp": "2025-09-04T11:54:52.272018"
+    },
+    {
+      "version": "v2.11.0",
+      "date": "2025-09-04",
+      "description": "웹 인터페이스 통합 완료",
+      "changes": [
+        {
+          "file": "app.py",
+          "previous_hash": "c60d2e2a6db8a2c6d89aa18f4c6f91cc",
+          "current_hash": "614e4de8cce7c41e5a3b0c9b5ce196b8",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:24:44.312875",
+          "size": 16478
+        },
+        {
+          "file": "templates/base.html",
+          "previous_hash": "7f75d0dfe72eae6196b3dffd6db1bf11",
+          "current_hash": "e55c36da54253819d55989636715f0ba",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:24:44.312875",
+          "size": 6924
+        },
+        {
+          "file": "templates/index.html",
+          "previous_hash": "bbb3d3973c2c0707c07ddcaf1280b514",
+          "current_hash": "4ee01405d2fe99ab8ac8ac2c53092b47",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:24:44.312875",
+          "size": 20240
+        },
+        {
+          "file": "templates/dashboard.html",
+          "previous_hash": "8976e7b4e7f641cf328ae04bda2eb6c9",
+          "current_hash": "00bea63357385779f82bed390620f6e7",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:24:44.312875",
+          "size": 15921
+        },
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "778b6d496656e4da8b4bf5edcd06e8e9",
+          "current_hash": "fba45962c68701dcce63d691fba7a50a",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:24:44.313871",
+          "size": 9473
+        }
+      ],
+      "reason": "모든 탐지기들을 웹 인터페이스에 통합하여 사용자가 직접 체험할 수 있도록 구현",
+      "test_results": "",
+      "timestamp": "2025-09-04T12:24:44.315866"
+    },
+    {
+      "version": "v2.12.0",
+      "date": "2025-09-04",
+      "description": "서버 오류 수정 완료",
+      "changes": [
+        {
+          "file": "app.py",
+          "previous_hash": "614e4de8cce7c41e5a3b0c9b5ce196b8",
+          "current_hash": "f191f7872ad095edb97b79f08186af66",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:30:04.488233",
+          "size": 17117
+        },
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "fba45962c68701dcce63d691fba7a50a",
+          "current_hash": "6ad8e44cd0c48eb41f3f104532a04bcd",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:30:04.490227",
+          "size": 9862
+        }
+      ],
+      "reason": "탐지기 메서드명 불일치 문제 해결 및 웹 인터페이스 정상 작동 확인",
+      "test_results": "",
+      "timestamp": "2025-09-04T12:30:04.493226"
+    },
+    {
+      "version": "v2.13.0",
+      "date": "2025-09-04",
+      "description": "맥락 인식 탐지기 구현 완료",
+      "changes": [
+        {
+          "file": "app.py",
+          "previous_hash": "f191f7872ad095edb97b79f08186af66",
+          "current_hash": "9ad181f9491977b6ff64cae5556cc221",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:41:52.742537",
+          "size": 18541
+        },
+        {
+          "file": "templates/index.html",
+          "previous_hash": "4ee01405d2fe99ab8ac8ac2c53092b47",
+          "current_hash": "671606967ac80258c5315eca4d78fca1",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:41:52.743489",
+          "size": 22118
+        },
+        {
+          "file": "templates/dashboard.html",
+          "previous_hash": "00bea63357385779f82bed390620f6e7",
+          "current_hash": "aa3dc05e92d3f99f3e64183aeffb28e7",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:41:52.743489",
+          "size": 16598
+        },
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "6ad8e44cd0c48eb41f3f104532a04bcd",
+          "current_hash": "931605446e513d90e1db0c456ebcda18",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:41:52.744484",
+          "size": 10146
+        }
+      ],
+      "reason": "단어의 모순성을 인식하는 맥락 인식 시스템 구현 및 웹 인터페이스 통합",
+      "test_results": "",
+      "timestamp": "2025-09-04T12:41:52.746482"
+    },
+    {
+      "version": "v2.14.0",
+      "date": "2025-09-04",
+      "description": "복합 문장 분석기 구현 완료",
+      "changes": [
+        {
+          "file": "app.py",
+          "previous_hash": "9ad181f9491977b6ff64cae5556cc221",
+          "current_hash": "34f7f34b0c76cee2903b89cc3ed48177",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:50:31.409935",
+          "size": 20196
+        },
+        {
+          "file": "templates/index.html",
+          "previous_hash": "671606967ac80258c5315eca4d78fca1",
+          "current_hash": "f758045c9e7e38e9163ed333f620915d",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:50:31.409935",
+          "size": 24350
+        },
+        {
+          "file": "logs/version_log.md",
+          "previous_hash": "931605446e513d90e1db0c456ebcda18",
+          "current_hash": "5532a7f0f0e12f20e30b11c93e7049e0",
+          "git_status": "??",
+          "timestamp": "2025-09-04T12:50:31.411929",
+          "size": 10502
+        }
+      ],
+      "reason": "여러 맥락이 섞인 복합 문장을 분석하고 분리하는 시스템 구현 및 웹 인터페이스 통합",
+      "test_results": "",
+      "timestamp": "2025-09-04T12:50:31.413922"
+    }
+  ],
+  "file_hashes": {
+    "ai_truth_detector.py": "2f0fd13fb25867a4a8f7d0f354bf422c",
+    "app.py": "34f7f34b0c76cee2903b89cc3ed48177",
+    "templates/base.html": "e55c36da54253819d55989636715f0ba",
+    "templates/index.html": "f758045c9e7e38e9163ed333f620915d",
+    "templates/dashboard.html": "aa3dc05e92d3f99f3e64183aeffb28e7",
+    "requirements.txt": "9c33ae54c467ab270bcd2c999156561b",
+    "test_truth_detector.py": "c6ddbc23b96fac8844dd1367e4c53d75",
+    "quick_test.py": "bbcc1da6610ebbfb7f239b7be387c153",
+    "logs/version_log.md": "5532a7f0f0e12f20e30b11c93e7049e0",
+    "logs/change_tracker.py": "99517ee9969dae5d9fe27e2aeb9611d8",
+    "logs/README.md": "93bdf293807f0c8773c7749b96b23590",
+    "logs/usage_guide.md": "05f43b67964f1d6990717f46307c9f1c",
+    "system_exe_method.md": "9093cf62757c226c2702c6c9f4c7f472"
+  },
+  "last_check": "2025-09-04T12:50:31.412925"
+}

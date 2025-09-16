@@ -1,0 +1,62 @@
+[
+  {
+    "test_case": 1,
+    "description": "거짓된 사실",
+    "statement": "지구는 평평하다",
+    "truth_percentage": 0.53,
+    "lie_percentage": 0.47,
+    "auto_correction_applied": true,
+    "corrected_statement": "지구는 대부분 평평하다",
+    "result": "PASS"
+  },
+  {
+    "test_case": 2,
+    "description": "잘못된 과학적 사실",
+    "statement": "물은 200도에서 끓는다",
+    "truth_percentage": 0.565,
+    "lie_percentage": 0.43500000000000005,
+    "auto_correction_applied": true,
+    "corrected_statement": "물은 100도에서 끓는다",
+    "result": "PASS"
+  },
+  {
+    "test_case": 3,
+    "description": "과도한 확신 표현",
+    "statement": "완전히 절대적으로 모든 사람이 알고 있다",
+    "truth_percentage": 0.655,
+    "lie_percentage": 0.345,
+    "auto_correction_applied": true,
+    "corrected_statement": "상당히 대부분 많은 사람이 알고 있다",
+    "result": "FAIL"
+  },
+  {
+    "test_case": 4,
+    "description": "거짓된 생물학적 사실",
+    "statement": "사람은 영원히 산다",
+    "truth_percentage": 0.685,
+    "lie_percentage": 0.31499999999999995,
+    "auto_correction_applied": true,
+    "corrected_statement": "사람은 평균적으로 80년 정도 산다",
+    "result": "PASS"
+  },
+  {
+    "test_case": 5,
+    "description": "논리적 모순",
+    "statement": "모든 사람이 일부 사람과 다르다",
+    "truth_percentage": 0.585,
+    "lie_percentage": 0.41500000000000004,
+    "auto_correction_applied": true,
+    "corrected_statement": "사람들은 서로 다르다",
+    "result": "PASS"
+  },
+  {
+    "test_case": 6,
+    "description": "진실한 문장 (교정 불필요)",
+    "statement": "지구는 둥글다",
+    "truth_percentage": 0.74,
+    "lie_percentage": 0.26,
+    "auto_correction_applied": false,
+    "corrected_statement": null,
+    "result": "PASS"
+  }
+]
