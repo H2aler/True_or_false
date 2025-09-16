@@ -427,6 +427,8 @@
                     throw new Error(data.error);
                 }
                 displayAnalysisResult(data);
+                // 로컬 스토리지에 분석 결과 저장
+                saveAnalysisToLocal(data);
                 loadRecentAnalyses();
             })
             .catch(error => {
@@ -435,6 +437,8 @@
                 try {
                     const demoResult = generateDemoResult(statement, currentAnalysisMode);
                     displayAnalysisResult(demoResult);
+                    // 데모 결과도 로컬 스토리지에 저장
+                    saveAnalysisToLocal(demoResult);
                     loadRecentAnalyses();
                 } catch (demoError) {
                     resultDiv.innerHTML = `
@@ -725,13 +729,33 @@
         
         // 최근 분석 결과 로드
         function loadRecentAnalyses() {
+            // 로컬 스토리지에서 최근 분석 결과 가져오기
+            const storedAnalyses = localStorage.getItem('recentAnalyses');
+            if (storedAnalyses) {
+                try {
+                    const analyses = JSON.parse(storedAnalyses);
+                    displayRecentAnalyses(analyses);
+                    return;
+                } catch (e) {
+                    console.error('로컬 스토리지 파싱 오류:', e);
+                }
+            }
+            
+            // API 호출 시도
             fetch('/api/recent?limit=5')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.error) {
                     throw new Error(data.error);
                 }
                 displayRecentAnalyses(data.recent_analyses);
+                // 로컬 스토리지에 저장
+                localStorage.setItem('recentAnalyses', JSON.stringify(data.recent_analyses));
             })
             .catch(error => {
                 console.error('최근 분석 결과 로드 오류:', error);
@@ -746,6 +770,11 @@
                         statement: "물은 100도에서 끓는다.",
                         final_analysis: { truth_percentage: 0.95, needs_correction: false },
                         timestamp: new Date(Date.now() - 60000).toISOString()
+                    },
+                    {
+                        statement: "모든 사람이 일부 사람과 다르다.",
+                        final_analysis: { truth_percentage: 0.75, needs_correction: true },
+                        timestamp: new Date(Date.now() - 120000).toISOString()
                     }
                 ];
                 displayRecentAnalyses(demoAnalyses);
@@ -784,6 +813,21 @@
             });
             
             recentDiv.innerHTML = html;
+        }
+        
+        // 분석 결과를 로컬 스토리지에 저장
+        function saveAnalysisToLocal(analysis) {
+            try {
+                const storedAnalyses = JSON.parse(localStorage.getItem('recentAnalyses') || '[]');
+                storedAnalyses.push(analysis);
+                // 최근 20개만 유지
+                if (storedAnalyses.length > 20) {
+                    storedAnalyses.splice(0, storedAnalyses.length - 20);
+                }
+                localStorage.setItem('recentAnalyses', JSON.stringify(storedAnalyses));
+            } catch (e) {
+                console.error('로컬 스토리지 저장 오류:', e);
+            }
         }
         
         // 페이지 로드 시 최근 분석 결과 로드
@@ -856,8 +900,27 @@
     
     // 대시보드 데이터 로드
     function loadDashboardData() {
+        // 로컬 스토리지에서 대시보드 데이터 가져오기
+        const storedAnalyses = localStorage.getItem('recentAnalyses');
+        if (storedAnalyses) {
+            try {
+                const analyses = JSON.parse(storedAnalyses);
+                const dashboardData = generateDashboardData(analyses);
+                displayDashboard(dashboardData);
+                return;
+            } catch (e) {
+                console.error('로컬 스토리지 파싱 오류:', e);
+            }
+        }
+        
+        // API 호출 시도
         fetch('/api/dashboard')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.error) {
                 throw new Error(data.error);
@@ -866,8 +929,64 @@
         })
         .catch(error => {
             console.error('대시보드 데이터 로드 오류:', error);
-            displayDashboardError(error.message);
+            // 로컬 스토리지에서 데이터 생성
+            const storedAnalyses = localStorage.getItem('recentAnalyses');
+            if (storedAnalyses) {
+                try {
+                    const analyses = JSON.parse(storedAnalyses);
+                    const dashboardData = generateDashboardData(analyses);
+                    displayDashboard(dashboardData);
+                } catch (e) {
+                    displayDashboardError('데이터를 불러올 수 없습니다.');
+                }
+            } else {
+                displayDashboardError('데이터를 불러올 수 없습니다.');
+            }
         });
+    }
+    
+    // 로컬 데이터로부터 대시보드 데이터 생성
+    function generateDashboardData(analyses) {
+        if (!analyses || analyses.length === 0) {
+            return {
+                total_analyses: 0,
+                average_truth_percentage: 0,
+                correction_rate: 0,
+                detector_stats: {},
+                recent_trends: []
+            };
+        }
+        
+        const total_analyses = analyses.length;
+        const truth_percentages = analyses.map(a => a.final_analysis.truth_percentage);
+        const average_truth_percentage = truth_percentages.reduce((a, b) => a + b, 0) / truth_percentages.length;
+        
+        const corrections = analyses.filter(a => a.final_analysis.needs_correction);
+        const correction_rate = corrections.length / total_analyses;
+        
+        // 탐지기별 통계
+        const detector_stats = {};
+        analyses.forEach(analysis => {
+            Object.keys(analysis).forEach(key => {
+                if (key.endsWith('_analysis') && typeof analysis[key] === 'object' && analysis[key] !== null) {
+                    if (!detector_stats[key]) {
+                        detector_stats[key] = { detected: 0, total: 0 };
+                    }
+                    detector_stats[key].total++;
+                    if (analysis[key].detected || analysis[key].is_detected) {
+                        detector_stats[key].detected++;
+                    }
+                }
+            });
+        });
+        
+        return {
+            total_analyses,
+            average_truth_percentage,
+            correction_rate,
+            detector_stats,
+            recent_trends: analyses.slice(-20)
+        };
     }
     
     // 대시보드 표시
