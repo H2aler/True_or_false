@@ -459,8 +459,8 @@
             }, 2000);
         });
         
-        // 데모용 결과 생성 함수
-        function generateDemoResult(statement, mode) {
+        // 데모용 결과 생성 함수 (전역 함수로 정의)
+        window.generateDemoResult = function(statement, mode) {
             // 문장 내용에 따라 더 현실적인 결과 생성
             const lowerStatement = statement.toLowerCase();
             let truthPercentage, confidence, needsCorrection;
@@ -754,7 +754,7 @@
             }
             
             resultDiv.innerHTML = resultHtml;
-        }
+        };
         
         // 최근 분석 결과 로드
         function loadRecentAnalyses() {
