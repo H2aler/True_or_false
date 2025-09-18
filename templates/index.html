@@ -24,11 +24,12 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>분석 모드 선택</h5>
+                <small class="text-muted">아래에서 원하는 분석 모드를 선택해주세요</small>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 mb-2">
-                        <button class="btn btn-outline-primary w-100 analysis-mode-btn active" data-mode="all">
+                        <button class="btn btn-outline-primary w-100 analysis-mode-btn" data-mode="all">
                             <i class="fas fa-layer-group me-2"></i>통합 분석
                             <small class="d-block">모든 기능 사용</small>
                         </button>
@@ -178,22 +179,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const recentDiv = document.getElementById('recentAnalyses');
     
     // 분석 모드 변수
-    let currentAnalysisMode = 'all'; // 기본값: 통합 분석
+    let currentAnalysisMode = null; // 기본값: 선택되지 않음
     
     // 분석 모드 선택 이벤트 리스너
     document.querySelectorAll('.analysis-mode-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             // 모든 버튼에서 active 클래스 제거
-            document.querySelectorAll('.analysis-mode-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.analysis-mode-btn').forEach(b => {
+                b.classList.remove('active', 'btn-primary', 'btn-success', 'btn-warning', 'btn-info', 'btn-danger', 'btn-dark');
+                b.classList.add('btn-outline-primary', 'btn-outline-success', 'btn-outline-warning', 'btn-outline-info', 'btn-outline-danger', 'btn-outline-dark');
+            });
             
-            // 클릭된 버튼에 active 클래스 추가
+            // 클릭된 버튼에 active 클래스 추가 및 색상 변경
             this.classList.add('active');
+            this.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-warning', 'btn-outline-info', 'btn-outline-danger', 'btn-outline-dark');
+            
+            // 모드에 따른 색상 적용
+            const mode = this.dataset.mode;
+            if (mode === 'all') {
+                this.classList.add('btn-primary');
+            } else if (mode === 'puns') {
+                this.classList.add('btn-success');
+            } else if (mode === 'coding') {
+                this.classList.add('btn-warning');
+            } else if (mode === 'multilingual') {
+                this.classList.add('btn-info');
+            } else if (mode === 'ai-self') {
+                this.classList.add('btn-danger');
+            } else if (mode === 'real-time') {
+                this.classList.add('btn-warning');
+            } else if (mode === 'meta') {
+                this.classList.add('btn-dark');
+            }
             
             // 분석 모드 업데이트
-            currentAnalysisMode = this.dataset.mode;
+            currentAnalysisMode = mode;
             
             // 모드에 따른 설명 업데이트
             updateModeDescription();
+            
+            // 선택 완료 메시지 표시
+            showSelectionFeedback(mode);
         });
     });
     
@@ -215,6 +241,74 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // 선택 피드백 표시 함수
+    function showSelectionFeedback(mode) {
+        const modeNames = {
+            'all': '통합 분석',
+            'puns': '말장난 분석',
+            'coding': '코딩 품질 분석',
+            'multilingual': '다국어 분석',
+            'ai-self': 'AI 자체 분석',
+            'real-time': '실시간 모니터링',
+            'meta': '메타-인지 분석'
+        };
+        
+        // 기존 피드백 제거
+        const existingFeedback = document.querySelector('.selection-feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+        
+        // 새로운 피드백 생성
+        const feedback = document.createElement('div');
+        feedback.className = 'selection-feedback alert alert-success alert-dismissible fade show mt-2';
+        feedback.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>${modeNames[mode]}</strong> 모드가 선택되었습니다. 이제 문장을 입력하고 분석을 시작하세요!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // 분석 모드 선택 카드에 추가
+        const cardBody = document.querySelector('.card-body');
+        cardBody.appendChild(feedback);
+        
+        // 3초 후 자동 제거
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.remove();
+            }
+        }, 3000);
+    }
+    
+    // 모드 선택 경고 표시 함수
+    function showModeSelectionWarning() {
+        // 기존 경고 제거
+        const existingWarning = document.querySelector('.mode-selection-warning');
+        if (existingWarning) {
+            existingWarning.remove();
+        }
+        
+        // 새로운 경고 생성
+        const warning = document.createElement('div');
+        warning.className = 'mode-selection-warning alert alert-warning alert-dismissible fade show mt-2';
+        warning.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>분석 모드를 선택해주세요!</strong> 위에서 원하는 분석 모드를 클릭한 후 문장을 입력하세요.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // 분석 모드 선택 카드에 추가
+        const cardBody = document.querySelector('.card-body');
+        cardBody.appendChild(warning);
+        
+        // 5초 후 자동 제거
+        setTimeout(() => {
+            if (warning.parentNode) {
+                warning.remove();
+            }
+        }, 5000);
+    }
+    
     // 폼 제출 처리
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -224,6 +318,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!statement) {
             alert('분석할 문장을 입력해주세요.');
+            return;
+        }
+        
+        if (!currentAnalysisMode) {
+            // 분석 모드 선택 카드에 경고 메시지 표시
+            showModeSelectionWarning();
             return;
         }
         
