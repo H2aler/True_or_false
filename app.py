@@ -35,6 +35,9 @@ from ai_web_researcher import AIWebResearcher
 from ai_advanced_researcher import AIAdvancedResearcher
 from ai_enhanced_researcher import AIEnhancedResearcher
 
+# AI 일관성 있는 진실성 탐지기
+from ai_consistent_detector import AIConsistentDetector
+
 app = Flask(__name__)
 app.secret_key = 'ai_truth_detector_secret_key_2024'
 
@@ -62,6 +65,9 @@ ai_meta_system = AIMetaTruthSystem(correction_threshold=99.0)
 ai_web_researcher = AIWebResearcher()
 ai_advanced_researcher = AIAdvancedResearcher()
 ai_enhanced_researcher = AIEnhancedResearcher()
+
+# AI 일관성 있는 진실성 탐지기
+ai_consistent_detector = AIConsistentDetector()
 
 analysis_history = []
 
@@ -1010,6 +1016,120 @@ def api_verify_fact():
         
     except Exception as e:
         return jsonify({'error': f'사실 검증 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/consistent-analyze', methods=['POST'])
+def api_consistent_analyze():
+    """API: 일관성 있는 진실성 분석"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        context = data.get('context', '').strip()
+        
+        if not statement:
+            return jsonify({'error': '분석할 문장을 입력해주세요.'}), 400
+        
+        # 일관성 있는 분석 수행
+        result = ai_consistent_detector.analyze_statement(statement, context)
+        
+        # 결과를 딕셔너리로 변환
+        result_dict = {
+            'statement': result.statement,
+            'statement_hash': result.statement_hash,
+            'truth_percentage': result.truth_percentage,
+            'confidence': result.confidence,
+            'needs_correction': result.needs_correction,
+            'corrected_statement': result.corrected_statement,
+            'consistency_score': result.consistency_score,
+            'analysis_method': result.analysis_method,
+            'analysis_timestamp': result.analysis_timestamp.isoformat(),
+            'cache_stats': ai_consistent_detector.get_cache_stats()
+        }
+        
+        # 분석 히스토리에 추가
+        analysis_history.append({
+            'id': str(uuid.uuid4()),
+            'type': 'consistent_analysis',
+            'statement': statement,
+            'result': result_dict,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        return jsonify({
+            'success': True,
+            'analysis': result_dict
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'일관성 있는 분석 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/consistency-test', methods=['POST'])
+def api_consistency_test():
+    """API: 일관성 테스트"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        test_count = data.get('test_count', 5)
+        
+        if not statement:
+            return jsonify({'error': '테스트할 문장을 입력해주세요.'}), 400
+        
+        # 동일한 문장에 대해 여러 번 분석
+        results = []
+        for i in range(test_count):
+            result = ai_consistent_detector.analyze_statement(statement)
+            results.append({
+                'iteration': i + 1,
+                'truth_percentage': result.truth_percentage,
+                'confidence': result.confidence,
+                'statement_hash': result.statement_hash,
+                'timestamp': result.analysis_timestamp.isoformat()
+            })
+        
+        # 일관성 통계 계산
+        truth_scores = [r['truth_percentage'] for r in results]
+        confidence_scores = [r['confidence'] for r in results]
+        
+        consistency_stats = {
+            'truth_percentage': {
+                'mean': sum(truth_scores) / len(truth_scores),
+                'std': (sum((x - sum(truth_scores) / len(truth_scores)) ** 2 for x in truth_scores) / len(truth_scores)) ** 0.5,
+                'min': min(truth_scores),
+                'max': max(truth_scores),
+                'variance': max(truth_scores) - min(truth_scores)
+            },
+            'confidence': {
+                'mean': sum(confidence_scores) / len(confidence_scores),
+                'std': (sum((x - sum(confidence_scores) / len(confidence_scores)) ** 2 for x in confidence_scores) / len(confidence_scores)) ** 0.5,
+                'min': min(confidence_scores),
+                'max': max(confidence_scores),
+                'variance': max(confidence_scores) - min(confidence_scores)
+            },
+            'is_consistent': max(truth_scores) - min(truth_scores) < 0.01,  # 1% 이내 변동
+            'test_count': test_count
+        }
+        
+        return jsonify({
+            'success': True,
+            'statement': statement,
+            'results': results,
+            'consistency_stats': consistency_stats,
+            'cache_stats': ai_consistent_detector.get_cache_stats()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'일관성 테스트 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/clear-consistency-cache', methods=['POST'])
+def api_clear_consistency_cache():
+    """API: 일관성 캐시 초기화"""
+    try:
+        ai_consistent_detector.clear_cache()
+        return jsonify({
+            'success': True,
+            'message': '일관성 캐시가 초기화되었습니다.'
+        })
+    except Exception as e:
+        return jsonify({'error': f'캐시 초기화 중 오류가 발생했습니다: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

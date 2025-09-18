@@ -93,6 +93,20 @@
                         </button>
                     </div>
                 </div>
+                <div class="row mt-3">
+                    <div class="col-md-6 mb-2">
+                        <button class="btn btn-outline-warning w-100 analysis-mode-btn" data-mode="consistent">
+                            <i class="fas fa-balance-scale me-2"></i>일관성 분석
+                            <small class="d-block">동일한 결과 보장</small>
+                        </button>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <button class="btn btn-outline-danger w-100 analysis-mode-btn" data-mode="consistency-test">
+                            <i class="fas fa-vial me-2"></i>일관성 테스트
+                            <small class="d-block">점수 변동성 검증</small>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -286,6 +300,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.add('btn-primary');
             } else if (mode === 'verify') {
                 this.classList.add('btn-success');
+            } else if (mode === 'consistent') {
+                this.classList.add('btn-warning');
+            } else if (mode === 'consistency-test') {
+                this.classList.add('btn-danger');
             }
             
             // 분석 모드 업데이트
@@ -311,7 +329,9 @@ document.addEventListener('DOMContentLoaded', function() {
             'meta': 'AI의 메타-인지 능력을 활용한 고급 진실성 탐지와 자기 성찰을 수행합니다.',
             'research': '인터넷에서 정보를 검색하고 신뢰성을 평가하여 질문에 답변합니다.',
             'enhanced-research': '실시간 검색 과정을 표시하며 인터넷에서 정보를 검색하고 답변합니다.',
-            'verify': '주어진 문장의 사실성을 검증하고 증거를 제시합니다.'
+            'verify': '주어진 문장의 사실성을 검증하고 증거를 제시합니다.',
+            'consistent': '동일한 문장에 대해 항상 같은 진실성 점수를 반환하는 일관성 있는 분석을 수행합니다.',
+            'consistency-test': '동일한 문장을 여러 번 분석하여 점수 변동성을 테스트하고 일관성을 검증합니다.'
         };
         
         const descriptionElement = document.querySelector('.lead.text-muted');
@@ -332,7 +352,9 @@ document.addEventListener('DOMContentLoaded', function() {
             'meta': '메타-인지 분석',
             'research': '웹 연구',
             'enhanced-research': '향상된 웹 연구',
-            'verify': '사실 검증'
+            'verify': '사실 검증',
+            'consistent': '일관성 분석',
+            'consistency-test': '일관성 테스트'
         };
         
         // 기존 피드백 제거
@@ -445,6 +467,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 requestBody = {
                     statement: statement
                 };
+            } else if (currentAnalysisMode === 'consistent') {
+                // 일관성 분석 모드
+                endpoint = '/api/consistent-analyze';
+                requestBody = {
+                    statement: statement,
+                    context: context
+                };
+            } else if (currentAnalysisMode === 'consistency-test') {
+                // 일관성 테스트 모드
+                endpoint = '/api/consistency-test';
+                requestBody = {
+                    statement: statement,
+                    test_count: 5
+                };
             } else {
                 // 기존 모드들
                 endpoint = currentAnalysisMode === 'all' ? '/analyze' : `/analyze/${currentAnalysisMode}`;
@@ -469,6 +505,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     displayResearchResult(data.research_result);
                 } else if (currentAnalysisMode === 'verify') {
                     displayVerificationResult(data.verification_result);
+                } else if (currentAnalysisMode === 'consistent') {
+                    displayConsistentResult(data.analysis);
+                } else if (currentAnalysisMode === 'consistency-test') {
+                    displayConsistencyTestResult(data);
                 } else {
                     displayAnalysisResult(data.analysis);
                 }
@@ -1188,6 +1228,309 @@ document.addEventListener('DOMContentLoaded', function() {
                                 연구 시간: ${new Date(result.timestamp).toLocaleString('ko-KR')}
                                 ${result.total_processing_time ? ` | 총 처리 시간: ${result.total_processing_time.toFixed(2)}초` : ''}
                             </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.innerHTML = html;
+    }
+    
+    // 일관성 분석 결과 표시 함수
+    function displayConsistentResult(result) {
+        const resultDiv = document.getElementById('analysisResult');
+        
+        let html = `
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-balance-scale me-2"></i>일관성 분석 결과</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-quote-left me-2"></i>분석 문장</h6>
+                            <p class="border p-3 bg-light rounded">${result.statement}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-percentage me-2"></i>진실성 점수</h6>
+                            <div class="text-center">
+                                <div class="display-4 text-${result.truth_percentage >= 0.8 ? 'success' : result.truth_percentage >= 0.6 ? 'warning' : 'danger'}">
+                                    ${(result.truth_percentage * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-shield-alt me-2"></i>일관성 점수</h6>
+                            <div class="text-center">
+                                <div class="display-4 text-${result.consistency_score >= 0.8 ? 'success' : result.consistency_score >= 0.6 ? 'warning' : 'danger'}">
+                                    ${(result.consistency_score * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-tachometer-alt me-2"></i>신뢰도</h6>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar ${result.confidence >= 0.8 ? 'bg-success' : result.confidence >= 0.6 ? 'bg-warning' : 'bg-danger'}" 
+                                     style="width: ${result.confidence * 100}%">
+                                    ${(result.confidence * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-cog me-2"></i>분석 방법</h6>
+                            <span class="badge bg-info fs-6">${result.analysis_method}</span>
+                        </div>
+                    </div>
+                    
+                    ${result.needs_correction ? `
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-edit me-2"></i>교정된 문장</h6>
+                                <div class="alert alert-warning">
+                                    <strong>원문:</strong> ${result.statement}<br>
+                                    <strong>교정문:</strong> ${result.corrected_statement}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-fingerprint me-2"></i>문장 해시</h6>
+                            <code class="text-muted">${result.statement_hash}</code>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-database me-2"></i>캐시 통계</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${result.cache_stats.cache_size}</h5>
+                                            <p class="card-text">캐시 크기</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${(result.cache_stats.cache_hit_rate * 100).toFixed(1)}%</h5>
+                                            <p class="card-text">캐시 히트율</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${result.cache_stats.total_requests}</h5>
+                                            <p class="card-text">총 요청</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${result.cache_stats.cache_hits}</h5>
+                                            <p class="card-text">캐시 히트</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                분석 시간: ${new Date(result.analysis_timestamp).toLocaleString('ko-KR')}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.innerHTML = html;
+    }
+    
+    // 일관성 테스트 결과 표시 함수
+    function displayConsistencyTestResult(data) {
+        const resultDiv = document.getElementById('analysisResult');
+        
+        let html = `
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-vial me-2"></i>일관성 테스트 결과</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-quote-left me-2"></i>테스트 문장</h6>
+                            <p class="border p-3 bg-light rounded">${data.statement}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-chart-line me-2"></i>테스트 결과 (${data.results.length}회 반복)</h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>회차</th>
+                                            <th>진실성 점수</th>
+                                            <th>신뢰도</th>
+                                            <th>문장 해시</th>
+                                            <th>시간</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.results.map((result, index) => `
+                                            <tr>
+                                                <td>${result.iteration}</td>
+                                                <td>
+                                                    <span class="badge bg-${result.truth_percentage >= 0.8 ? 'success' : result.truth_percentage >= 0.6 ? 'warning' : 'danger'}">
+                                                        ${(result.truth_percentage * 100).toFixed(1)}%
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-${result.confidence >= 0.8 ? 'success' : result.confidence >= 0.6 ? 'warning' : 'danger'}">
+                                                        ${(result.confidence * 100).toFixed(1)}%
+                                                    </span>
+                                                </td>
+                                                <td><code class="text-muted">${result.statement_hash.substring(0, 8)}...</code></td>
+                                                <td>${new Date(result.timestamp).toLocaleTimeString('ko-KR')}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-percentage me-2"></i>진실성 점수 통계</h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>평균:</strong> ${(data.consistency_stats.truth_percentage.mean * 100).toFixed(1)}%
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>표준편차:</strong> ${(data.consistency_stats.truth_percentage.std * 100).toFixed(3)}%
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>최소값:</strong> ${(data.consistency_stats.truth_percentage.min * 100).toFixed(1)}%
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>최대값:</strong> ${(data.consistency_stats.truth_percentage.max * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <strong>변동폭:</strong> ${(data.consistency_stats.truth_percentage.variance * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-shield-alt me-2"></i>신뢰도 통계</h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>평균:</strong> ${(data.consistency_stats.confidence.mean * 100).toFixed(1)}%
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>표준편차:</strong> ${(data.consistency_stats.confidence.std * 100).toFixed(3)}%
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>최소값:</strong> ${(data.consistency_stats.confidence.min * 100).toFixed(1)}%
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>최대값:</strong> ${(data.consistency_stats.confidence.max * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <strong>변동폭:</strong> ${(data.consistency_stats.confidence.variance * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-check-circle me-2"></i>일관성 평가</h6>
+                            <div class="alert alert-${data.consistency_stats.is_consistent ? 'success' : 'danger'}">
+                                <h5 class="alert-heading">
+                                    <i class="fas fa-${data.consistency_stats.is_consistent ? 'check-circle' : 'times-circle'} me-2"></i>
+                                    ${data.consistency_stats.is_consistent ? '일관성 있음' : '일관성 없음'}
+                                </h5>
+                                <p class="mb-0">
+                                    ${data.consistency_stats.is_consistent ? 
+                                        '동일한 문장에 대해 일관된 결과를 반환합니다.' : 
+                                        '동일한 문장에 대해 다른 결과를 반환합니다. 신뢰성이 낮습니다.'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-database me-2"></i>캐시 통계</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${data.cache_stats.cache_size}</h5>
+                                            <p class="card-text">캐시 크기</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${(data.cache_stats.cache_hit_rate * 100).toFixed(1)}%</h5>
+                                            <p class="card-text">캐시 히트율</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${data.cache_stats.total_requests}</h5>
+                                            <p class="card-text">총 요청</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${data.cache_stats.cache_hits}</h5>
+                                            <p class="card-text">캐시 히트</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
