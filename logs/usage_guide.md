@@ -356,6 +356,6 @@ python logs/change_tracker.py
 
 ---
 
-**마지막 업데이트**: 2024년 12월 19일  
+**마지막 업데이트**: 2025년 09월 19일  
 **버전**: 2.0.0-enterprise  
 **관리자**: H2aler
