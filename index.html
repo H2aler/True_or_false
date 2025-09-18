@@ -406,6 +406,40 @@ document.addEventListener('DOMContentLoaded', function() {
             originalConsoleError.apply(console, args);
         };
         
+        // 모달 접근성 관리 함수
+        function manageModalAccessibility(modalElement) {
+            if (!modalElement) return;
+            
+            // 모달이 표시될 때
+            modalElement.addEventListener('shown.bs.modal', function() {
+                this.setAttribute('aria-hidden', 'false');
+                // 첫 번째 포커스 가능한 요소에 포커스
+                const firstFocusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                if (firstFocusable) {
+                    firstFocusable.focus();
+                }
+            });
+            
+            // 모달이 닫히기 전에
+            modalElement.addEventListener('hide.bs.modal', function() {
+                // 현재 포커스된 요소가 모달 내부에 있으면 포커스 제거
+                const activeElement = document.activeElement;
+                if (activeElement && this.contains(activeElement)) {
+                    activeElement.blur();
+                }
+            });
+            
+            // 모달이 완전히 닫힌 후
+            modalElement.addEventListener('hidden.bs.modal', function() {
+                this.setAttribute('aria-hidden', 'true');
+                // 포커스를 메인 컨텐츠로 이동
+                const mainContent = document.querySelector('main') || document.querySelector('.container');
+                if (mainContent) {
+                    mainContent.focus();
+                }
+            });
+        }
+        
     const form = document.getElementById('analysisForm');
     const loading = document.querySelector('.loading');
     const resultDiv = document.getElementById('analysisResult');
@@ -1036,23 +1070,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = new bootstrap.Modal(document.getElementById('demoModal'));
         modal.show();
         
-        // 모달이 닫힐 때 포커스 정리
-        document.getElementById('demoModal').addEventListener('hidden.bs.modal', function() {
-            // 모달이 완전히 닫힌 후 포커스를 메인 컨텐츠로 이동
-            const mainContent = document.querySelector('main') || document.querySelector('.container');
-            if (mainContent) {
-                mainContent.focus();
-            }
-        });
-        
-        // 모달이 표시될 때 접근성 개선
-        document.getElementById('demoModal').addEventListener('shown.bs.modal', function() {
-            // 모달이 표시된 후 첫 번째 포커스 가능한 요소에 포커스
-            const firstFocusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-            if (firstFocusable) {
-                firstFocusable.focus();
-            }
-        });
+        // 모달 접근성 관리
+        manageModalAccessibility(document.getElementById('demoModal'));
         
         // 전역 변수에 저장
         window.demoStatements = statements;
@@ -1184,23 +1203,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = new bootstrap.Modal(document.getElementById('dashboardModal'));
         modal.show();
         
-        // 모달이 닫힐 때 포커스 정리
-        document.getElementById('dashboardModal').addEventListener('hidden.bs.modal', function() {
-            // 모달이 완전히 닫힌 후 포커스를 메인 컨텐츠로 이동
-            const mainContent = document.querySelector('main') || document.querySelector('.container');
-            if (mainContent) {
-                mainContent.focus();
-            }
-        });
-        
-        // 모달이 표시될 때 접근성 개선
-        document.getElementById('dashboardModal').addEventListener('shown.bs.modal', function() {
-            // 모달이 표시된 후 첫 번째 포커스 가능한 요소에 포커스
-            const firstFocusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-            if (firstFocusable) {
-                firstFocusable.focus();
-            }
-        });
+        // 모달 접근성 관리
+        manageModalAccessibility(document.getElementById('dashboardModal'));
         
         // 대시보드 데이터 로드
         loadDashboardData();
