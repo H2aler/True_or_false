@@ -378,6 +378,34 @@
 document.addEventListener('DOMContentLoaded', function() {
         console.log('AI 진실성 탐지기 로드 완료');
         
+        // 브라우저 확장 프로그램 오류 방지
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('Extension context invalidated')) {
+                console.warn('브라우저 확장 프로그램 오류 무시:', e.message);
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Promise rejection 오류 방지
+        window.addEventListener('unhandledrejection', function(e) {
+            if (e.reason && e.reason.message && e.reason.message.includes('Extension context invalidated')) {
+                console.warn('브라우저 확장 프로그램 Promise 오류 무시:', e.reason.message);
+                e.preventDefault();
+            }
+        });
+        
+        // 콘솔 오류 필터링
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('Extension context invalidated')) {
+                console.warn('브라우저 확장 프로그램 오류 무시:', message);
+                return;
+            }
+            originalConsoleError.apply(console, args);
+        };
+        
     const form = document.getElementById('analysisForm');
     const loading = document.querySelector('.loading');
     const resultDiv = document.getElementById('analysisResult');
@@ -951,7 +979,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 데모 모달 표시
     function showDemoModal(statements, mode) {
         const modalHtml = `
-            <div class="modal fade" id="demoModal" tabindex="-1" aria-labelledby="demoModalLabel" aria-hidden="true">
+            <div class="modal fade" id="demoModal" tabindex="-1" aria-labelledby="demoModalLabel" aria-hidden="true" role="dialog">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -1014,6 +1042,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const mainContent = document.querySelector('main') || document.querySelector('.container');
             if (mainContent) {
                 mainContent.focus();
+            }
+        });
+        
+        // 모달이 표시될 때 접근성 개선
+        document.getElementById('demoModal').addEventListener('shown.bs.modal', function() {
+            // 모달이 표시된 후 첫 번째 포커스 가능한 요소에 포커스
+            const firstFocusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) {
+                firstFocusable.focus();
             }
         });
         
@@ -1110,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showDashboard = function() {
         // 대시보드 모달 생성
         const modalHtml = `
-            <div class="modal fade" id="dashboardModal" tabindex="-1" aria-labelledby="dashboardModalLabel" aria-hidden="true">
+            <div class="modal fade" id="dashboardModal" tabindex="-1" aria-labelledby="dashboardModalLabel" aria-hidden="true" role="dialog">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -1153,6 +1190,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const mainContent = document.querySelector('main') || document.querySelector('.container');
             if (mainContent) {
                 mainContent.focus();
+            }
+        });
+        
+        // 모달이 표시될 때 접근성 개선
+        document.getElementById('dashboardModal').addEventListener('shown.bs.modal', function() {
+            // 모달이 표시된 후 첫 번째 포커스 가능한 요소에 포커스
+            const firstFocusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) {
+                firstFocusable.focus();
             }
         });
         
