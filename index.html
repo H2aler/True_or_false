@@ -1230,6 +1230,23 @@ document.addEventListener('DOMContentLoaded', function() {
             recent_trends: []
         };
         displayDashboard(emptyDashboardData);
+        
+        // 데이터가 없을 때 안내 메시지 표시
+        setTimeout(() => {
+            const dashboardContent = document.getElementById('dashboardContent');
+            if (dashboardContent && emptyDashboardData.total_analyses === 0) {
+                dashboardContent.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-bar fa-4x text-muted mb-4"></i>
+                        <h4 class="text-muted">아직 분석 데이터가 없습니다</h4>
+                        <p class="text-muted mb-4">문장을 분석하면 대시보드에 통계가 표시됩니다.</p>
+                        <button class="btn btn-primary" onclick="bootstrap.Modal.getInstance(document.getElementById('dashboardModal')).hide()">
+                            <i class="fas fa-arrow-left me-2"></i>분석하러 가기
+                        </button>
+                    </div>
+                `;
+            }
+        }, 100);
     }
     
     // 로컬 데이터로부터 대시보드 데이터 생성
@@ -1260,7 +1277,30 @@ document.addEventListener('DOMContentLoaded', function() {
                         detector_stats[key] = { detected: 0, total: 0 };
                     }
                     detector_stats[key].total++;
-                    if (analysis[key].detected || analysis[key].is_detected) {
+                    
+                    // 다양한 감지 속성 확인
+                    const analysisData = analysis[key];
+                    let isDetected = false;
+                    
+                    // 감지 여부를 확인하는 다양한 속성들
+                    if (analysisData.meta_lie_detected || 
+                        analysisData.religious_topic_detected || 
+                        analysisData.scientific_lie_detected || 
+                        analysisData.intentional_lie_detected || 
+                        analysisData.is_human_behavior_lie || 
+                        analysisData.is_benevolent_lie || 
+                        analysisData.context_correction_applied || 
+                        analysisData.compound_correction_applied || 
+                        analysisData.is_pun_detected || 
+                        analysisData.unnecessary_code_detected || 
+                        analysisData.is_multilingual || 
+                        analysisData.enhanced_correction_applied ||
+                        analysisData.detected ||
+                        analysisData.is_detected) {
+                        isDetected = true;
+                    }
+                    
+                    if (isDetected) {
                         detector_stats[key].detected++;
                     }
                 }
@@ -1328,11 +1368,30 @@ document.addEventListener('DOMContentLoaded', function() {
             
             Object.entries(data.detector_stats).forEach(([detector, stats]) => {
                 const detectionRate = stats.total > 0 ? (stats.detected / stats.total * 100).toFixed(1) : 0;
+                
+                // 탐지기 이름을 한국어로 변환
+                const detectorNames = {
+                    'meta_analysis': '메타-진실성',
+                    'religious_analysis': '종교적 맥락',
+                    'scientific_analysis': '과학적 검증',
+                    'intentional_analysis': '의도적 거짓말',
+                    'human_behavior_analysis': '인간 행동',
+                    'benevolent_analysis': '선의의 거짓말',
+                    'context_analysis': '맥락 인식',
+                    'compound_analysis': '복합 문장',
+                    'puns_analysis': '말장난',
+                    'coding_analysis': '코딩 품질',
+                    'multilingual_analysis': '다국어',
+                    'correction_enhancement': '교정 강화'
+                };
+                
+                const detectorName = detectorNames[detector] || detector.replace('_analysis', '').replace('_', ' ');
+                
                 html += `
                     <div class="col-md-4 mb-3">
                         <div class="card">
                             <div class="card-body">
-                                <h6 class="card-title">${detector.replace('_analysis', '').replace('_', ' ')}</h6>
+                                <h6 class="card-title">${detectorName}</h6>
                                 <div class="progress mb-2">
                                     <div class="progress-bar" style="width: ${detectionRate}%"></div>
                                 </div>
