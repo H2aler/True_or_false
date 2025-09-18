@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 환경 정보 표시
         setTimeout(() => {
-            if (API_CONFIG.isGitHubPages) {
+            if (typeof API_CONFIG !== 'undefined' && API_CONFIG && API_CONFIG.isGitHubPages) {
                 showEnvironmentInfo('github-pages');
             } else {
                 showEnvironmentInfo('local');
@@ -438,9 +438,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // API 호출 함수
         window.apiCall = async function(endpoint, method = 'GET', data = null) {
-            // GitHub Pages에서는 API 호출 비활성화
-            if (API_CONFIG.isGitHubPages || !API_CONFIG.baseUrl) {
-                throw new Error('GitHub Pages 환경에서는 API 호출이 비활성화되어 있습니다.');
+            // API_CONFIG가 정의되지 않은 경우 또는 GitHub Pages에서는 API 호출 비활성화
+            if (typeof API_CONFIG === 'undefined' || !API_CONFIG || API_CONFIG.isGitHubPages || !API_CONFIG.baseUrl) {
+                throw new Error('API 호출이 비활성화되어 있습니다.');
             }
             
             const url = `${API_CONFIG.baseUrl}${endpoint}`;
@@ -519,9 +519,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 하이브리드 분석 함수 (파이썬 + 로컬)
         window.hybridAnalyze = async function(statement, context = null) {
-            // GitHub Pages에서는 바로 로컬 분석 사용
-            if (API_CONFIG.isGitHubPages) {
-                console.log('🌐 GitHub Pages 환경: 로컬 분석 사용');
+            // API_CONFIG가 정의되지 않았거나 GitHub Pages에서는 바로 로컬 분석 사용
+            if (typeof API_CONFIG === 'undefined' || !API_CONFIG || API_CONFIG.isGitHubPages) {
+                console.log('🌐 로컬 분석 사용 (API_CONFIG 미정의 또는 GitHub Pages)');
                 const localResult = generateDemoResult(statement, context);
                 return {
                     ...localResult,
@@ -1604,6 +1604,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 대시보드 데이터 로드 (하이브리드)
     async function loadDashboardData() {
+        // API_CONFIG가 정의되지 않은 경우 안전하게 처리
+        if (typeof API_CONFIG === 'undefined' || !API_CONFIG) {
+            console.log('⚠️ API_CONFIG가 정의되지 않음, 로컬 데이터 사용');
+            loadLocalDashboardData();
+            return;
+        }
+        
         // GitHub Pages에서는 바로 로컬 데이터 사용
         if (API_CONFIG.isGitHubPages) {
             console.log('🌐 GitHub Pages 환경: 로컬 대시보드 데이터 사용');
@@ -2104,9 +2111,9 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             try {
-                // GitHub Pages에서는 바로 로컬 분석 사용
-                if (API_CONFIG.isGitHubPages) {
-                    console.log('🌐 GitHub Pages 환경: 로컬 배치 분석 사용');
+                // API_CONFIG가 정의되지 않았거나 GitHub Pages에서는 바로 로컬 분석 사용
+                if (typeof API_CONFIG === 'undefined' || !API_CONFIG || API_CONFIG.isGitHubPages) {
+                    console.log('🌐 로컬 배치 분석 사용 (API_CONFIG 미정의 또는 GitHub Pages)');
                     const localResults = [];
                     for (const statement of statements) {
                         const result = generateDemoResult(statement);
