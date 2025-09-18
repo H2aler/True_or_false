@@ -1,22 +1,10 @@
-# GitHub Pages 설정
+# GitHub Pages 설정 (정적 사이트)
 title: AI 진실성 탐지기
 description: AI가 거짓말을 하는지 측정하고 자동으로 교정하는 시스템
 author: H2aler
 baseurl: "/True_or_false"
 url: "https://h2aler.github.io"
 
-# GitHub Pages 설정
-plugins:
-  - jekyll-sitemap
-  - jekyll-feed
-
-# 빌드 설정
-exclude:
-  - README.md
-  - ai_truth_env/
-  - .gitignore
-  - requirements.txt
-  - *.py
-  - logs/
-  - templates/
-  - static/
+# 사이트 설정
+timezone: Asia/Seoul
+locale: ko_KR
