@@ -74,6 +74,52 @@
             transform: scale(1.05);
         }
         
+        /* 배치 분석 스타일 */
+        .batch-accordion .accordion-button {
+            border: 1px solid #dee2e6;
+            border-radius: 8px !important;
+            margin-bottom: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .batch-accordion .accordion-button:not(.collapsed) {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+        }
+        
+        .batch-accordion .accordion-item {
+            border: none;
+            margin-bottom: 12px;
+        }
+        
+        .batch-accordion .accordion-body {
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .batch-accordion .form-check-input:checked {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        
+        .batch-accordion .form-check-label {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .batch-accordion .card {
+            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .batch-accordion .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+        }
+        
         .loading {
             display: none;
         }
@@ -2037,7 +2083,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </div>
                                     <div class="col-md-6">
                                         <h6><i class="fas fa-chart-bar me-2"></i>분석 결과</h6>
-                                        <div id="batchResults" class="border rounded p-3" style="height: 300px; overflow-y: auto;">
+                                        <div id="batchResults" class="border rounded p-3" style="height: 500px; overflow-y: auto; background-color: #f8f9fa;">
                                             <div class="text-center text-muted">
                                                 <i class="fas fa-arrow-left fa-2x mb-2"></i>
                                                 <p>왼쪽에 문장을 입력하고 분석 버튼을 클릭하세요.</p>
@@ -2173,7 +2219,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="text-center mb-3">
                     ${sourceBadge}
                 </div>
-                <div class="accordion" id="batchResultsAccordion">
+                <div class="accordion batch-accordion" id="batchResultsAccordion">
             `;
             
             results.forEach((result, index) => {
@@ -2182,40 +2228,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 const statusIcon = result.needs_correction ? 'fa-exclamation-triangle' : 'fa-check-circle';
                 
                 html += `
-                    <div class="accordion-item">
+                    <div class="accordion-item mb-2">
                         <h2 class="accordion-header" id="heading${index}">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                                    data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}">
-                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
-                                    <span class="text-truncate me-2">${result.statement}</span>
-                                    <div>
+                                    data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}"
+                                    style="flex-direction: column; align-items: flex-start; padding: 1rem;">
+                                <div class="d-flex justify-content-between align-items-center w-100 mb-2">
+                                    <div class="flex-grow-1 me-3" style="min-width: 0;">
+                                        <span class="fw-bold text-dark" style="word-break: break-word; line-height: 1.4;">
+                                            ${result.statement.length > 80 ? result.statement.substring(0, 80) + '...' : result.statement}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
                                         <span class="badge bg-${truthPercentage >= 80 ? 'success' : truthPercentage >= 50 ? 'warning' : 'danger'} me-2">
                                             ${truthPercentage}%
                                         </span>
                                         <i class="fas ${statusIcon} ${statusClass}"></i>
                                     </div>
                                 </div>
+                                ${result.statement.length > 80 ? 
+                                    `<small class="text-muted w-100" style="word-break: break-word;">${result.statement}</small>` : 
+                                    ''
+                                }
                             </button>
                         </h2>
                         <div id="collapse${index}" class="accordion-collapse collapse" 
                              aria-labelledby="heading${index}" data-bs-parent="#batchResultsAccordion">
                             <div class="accordion-body">
-                                <div class="row">
+                                <div class="row g-3">
                                     <div class="col-md-6">
-                                        <h6>감지된 문제</h6>
-                                        ${result.detected_issues && result.detected_issues.length > 0 ? 
-                                            '<ul class="list-unstyled">' + result.detected_issues.map(issue => `<li><i class="fas fa-exclamation-circle text-warning me-2"></i>${issue}</li>`).join('') + '</ul>' :
-                                            '<p class="text-success"><i class="fas fa-check-circle me-2"></i>문제 없음</p>'
-                                        }
+                                        <div class="card h-100">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0"><i class="fas fa-exclamation-triangle text-warning me-2"></i>감지된 문제</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                ${result.detected_issues && result.detected_issues.length > 0 ? 
+                                                    '<ul class="list-unstyled mb-0">' + result.detected_issues.map(issue => 
+                                                        `<li class="mb-2"><i class="fas fa-exclamation-circle text-warning me-2"></i>${issue}</li>`
+                                                    ).join('') + '</ul>' :
+                                                    '<p class="text-success mb-0"><i class="fas fa-check-circle me-2"></i>문제 없음</p>'
+                                                }
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <h6>교정 제안</h6>
-                                        ${result.correction_suggestions && result.correction_suggestions.length > 0 ? 
-                                            '<ul class="list-unstyled">' + result.correction_suggestions.map(correction => 
-                                                `<li><i class="fas fa-edit text-info me-2"></i>${correction.statement}</li>`
-                                            ).join('') + '</ul>' :
-                                            '<p class="text-muted"><i class="fas fa-info-circle me-2"></i>교정 불필요</p>'
-                                        }
+                                        <div class="card h-100">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0"><i class="fas fa-edit text-info me-2"></i>교정 제안</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                ${result.correction_suggestions && result.correction_suggestions.length > 0 ? 
+                                                    '<div class="form-check-group">' + result.correction_suggestions.map((correction, idx) => 
+                                                        `<div class="form-check mb-2">
+                                                            <input class="form-check-input" type="checkbox" value="" id="correction${index}_${idx}" checked>
+                                                            <label class="form-check-label" for="correction${index}_${idx}" style="word-break: break-word;">
+                                                                ${correction.statement}
+                                                            </label>
+                                                        </div>`
+                                                    ).join('') + '</div>' :
+                                                    '<p class="text-muted mb-0"><i class="fas fa-info-circle me-2"></i>교정 불필요</p>'
+                                                }
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
