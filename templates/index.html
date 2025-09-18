@@ -73,6 +73,20 @@
                         </button>
                     </div>
                 </div>
+                <div class="row mt-3">
+                    <div class="col-md-6 mb-2">
+                        <button class="btn btn-outline-primary w-100 analysis-mode-btn" data-mode="research">
+                            <i class="fas fa-search me-2"></i>웹 연구
+                            <small class="d-block">인터넷에서 정보 검색</small>
+                        </button>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <button class="btn btn-outline-success w-100 analysis-mode-btn" data-mode="verify">
+                            <i class="fas fa-check-double me-2"></i>사실 검증
+                            <small class="d-block">정보의 진실성 확인</small>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -210,6 +224,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.add('btn-warning');
             } else if (mode === 'meta') {
                 this.classList.add('btn-dark');
+            } else if (mode === 'research') {
+                this.classList.add('btn-primary');
+            } else if (mode === 'verify') {
+                this.classList.add('btn-success');
             }
             
             // 분석 모드 업데이트
@@ -232,7 +250,9 @@ document.addEventListener('DOMContentLoaded', function() {
             'multilingual': '다국어 문장을 분석하고 언어별 의미를 파악합니다.',
             'ai-self': 'AI가 스스로 자신의 출력을 분석하여 거짓말을 감지하고 교정합니다.',
             'real-time': '실시간으로 AI의 출력을 모니터링하고 즉시 교정합니다.',
-            'meta': 'AI의 메타-인지 능력을 활용한 고급 진실성 탐지와 자기 성찰을 수행합니다.'
+            'meta': 'AI의 메타-인지 능력을 활용한 고급 진실성 탐지와 자기 성찰을 수행합니다.',
+            'research': '인터넷에서 정보를 검색하고 신뢰성을 평가하여 질문에 답변합니다.',
+            'verify': '주어진 문장의 사실성을 검증하고 증거를 제시합니다.'
         };
         
         const descriptionElement = document.querySelector('.lead.text-muted');
@@ -250,7 +270,9 @@ document.addEventListener('DOMContentLoaded', function() {
             'multilingual': '다국어 분석',
             'ai-self': 'AI 자체 분석',
             'real-time': '실시간 모니터링',
-            'meta': '메타-인지 분석'
+            'meta': '메타-인지 분석',
+            'research': '웹 연구',
+            'verify': '사실 검증'
         };
         
         // 기존 피드백 제거
@@ -343,6 +365,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     context: context,
                     ai_self_analysis: true
                 };
+            } else if (currentAnalysisMode === 'research') {
+                // 웹 연구 모드
+                endpoint = '/api/research-question';
+                requestBody = {
+                    question: statement,
+                    type: 'advanced'
+                };
+            } else if (currentAnalysisMode === 'verify') {
+                // 사실 검증 모드
+                endpoint = '/api/verify-fact';
+                requestBody = {
+                    statement: statement
+                };
             } else {
                 // 기존 모드들
                 endpoint = currentAnalysisMode === 'all' ? '/analyze' : `/analyze/${currentAnalysisMode}`;
@@ -363,7 +398,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                displayAnalysisResult(data.analysis);
+                if (currentAnalysisMode === 'research') {
+                    displayResearchResult(data.research_result);
+                } else if (currentAnalysisMode === 'verify') {
+                    displayVerificationResult(data.verification_result);
+                } else {
+                    displayAnalysisResult(data.analysis);
+                }
                 loadRecentAnalyses();
             } else {
                 throw new Error(data.error || '분석 중 오류가 발생했습니다.');
@@ -919,6 +960,235 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         document.getElementById('analysisResult').innerHTML = resultHtml;
+    }
+    
+    // 웹 연구 결과 표시 함수
+    function displayResearchResult(result) {
+        const resultDiv = document.getElementById('analysisResult');
+        
+        let html = `
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>웹 연구 결과</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-question-circle me-2"></i>질문</h6>
+                            <p class="border p-3 bg-light rounded">${result.question}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-lightbulb me-2"></i>답변</h6>
+                            <div class="border p-3 bg-success text-white rounded">
+                                <pre style="white-space: pre-wrap; margin: 0;">${result.answer}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-tachometer-alt me-2"></i>신뢰도</h6>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar ${result.confidence >= 0.8 ? 'bg-success' : result.confidence >= 0.6 ? 'bg-warning' : 'bg-danger'}" 
+                                     style="width: ${result.confidence * 100}%">
+                                    ${(result.confidence * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-database me-2"></i>참고 소스</h6>
+                            <span class="badge bg-info fs-6">${result.sources.length}개</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-book me-2"></i>참고 소스</h6>
+                            <div class="row">
+                                ${result.sources.map((source, index) => `
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">${source.title}</h6>
+                                                <p class="card-text">${source.snippet}</p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">${source.domain}</small>
+                                                    <div>
+                                                        <span class="badge bg-${source.credibility_score >= 0.8 ? 'success' : source.credibility_score >= 0.6 ? 'warning' : 'danger'}">
+                                                            신뢰도: ${(source.credibility_score * 100).toFixed(0)}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <a href="${source.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                    <i class="fas fa-external-link-alt me-1"></i>원문 보기
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${result.fact_checks && result.fact_checks.length > 0 ? `
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-check-double me-2"></i>사실 검증</h6>
+                                <div class="row">
+                                    ${result.fact_checks.map((check, index) => `
+                                        <div class="col-md-6 mb-2">
+                                            <div class="card ${check.is_factual ? 'border-success' : 'border-danger'}">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">
+                                                        <i class="fas fa-${check.is_factual ? 'check-circle text-success' : 'times-circle text-danger'} me-2"></i>
+                                                        ${check.is_factual ? '검증됨' : '검증 실패'}
+                                                    </h6>
+                                                    <p class="card-text">${check.statement}</p>
+                                                    <small class="text-muted">신뢰도: ${(check.confidence * 100).toFixed(0)}%</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-brain me-2"></i>추론 과정</h6>
+                            <p class="border p-3 bg-light rounded">${result.reasoning}</p>
+                        </div>
+                    </div>
+                    
+                    ${result.limitations && result.limitations.length > 0 ? `
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>한계점</h6>
+                                <ul class="list-group">
+                                    ${result.limitations.map(limitation => `
+                                        <li class="list-group-item">${limitation}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                연구 시간: ${new Date(result.timestamp).toLocaleString('ko-KR')}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.innerHTML = html;
+    }
+    
+    // 사실 검증 결과 표시 함수
+    function displayVerificationResult(result) {
+        const resultDiv = document.getElementById('analysisResult');
+        
+        let html = `
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-double me-2"></i>사실 검증 결과</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-quote-left me-2"></i>검증 대상 문장</h6>
+                            <p class="border p-3 bg-light rounded">${result.statement}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check-circle me-2"></i>검증 결과</h6>
+                            <div class="text-center">
+                                <i class="fas fa-${result.is_verified ? 'check-circle text-success' : 'times-circle text-danger'} fa-3x mb-3"></i>
+                                <h4 class="${result.is_verified ? 'text-success' : 'text-danger'}">
+                                    ${result.is_verified ? '사실로 확인됨' : '사실이 아닐 가능성'}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-tachometer-alt me-2"></i>신뢰도</h6>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar ${result.confidence >= 0.8 ? 'bg-success' : result.confidence >= 0.6 ? 'bg-warning' : 'bg-danger'}" 
+                                     style="width: ${result.confidence * 100}%">
+                                    ${(result.confidence * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${result.evidence && result.evidence.length > 0 ? `
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-search me-2"></i>증거</h6>
+                                <ul class="list-group">
+                                    ${result.evidence.map(evidence => `
+                                        <li class="list-group-item">${evidence}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-book me-2"></i>참고 소스</h6>
+                            <div class="row">
+                                ${result.sources.map((source, index) => `
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">${source.title}</h6>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">${source.url}</small>
+                                                    <span class="badge bg-${source.credibility_score >= 0.8 ? 'success' : source.credibility_score >= 0.6 ? 'warning' : 'danger'}">
+                                                        신뢰도: ${(source.credibility_score * 100).toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                                <a href="${source.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                    <i class="fas fa-external-link-alt me-1"></i>원문 보기
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-brain me-2"></i>검증 과정</h6>
+                            <p class="border p-3 bg-light rounded">${result.reasoning}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                검증 시간: ${new Date(result.timestamp).toLocaleString('ko-KR')}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.innerHTML = html;
     }
     
     // 페이지 로드 시 최근 분석 결과 로드

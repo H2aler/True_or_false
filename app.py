@@ -30,6 +30,10 @@ from ai_self_truth_detector import AISelfTruthDetector
 from ai_real_time_truth_monitor import AIRealTimeTruthMonitor
 from ai_meta_truth_system import AIMetaTruthSystem
 
+# AI 웹 연구원 시스템들
+from ai_web_researcher import AIWebResearcher
+from ai_advanced_researcher import AIAdvancedResearcher
+
 app = Flask(__name__)
 app.secret_key = 'ai_truth_detector_secret_key_2024'
 
@@ -52,6 +56,10 @@ multilingual_analyzer = MultilingualAnalyzer()
 ai_self_detector = AISelfTruthDetector()
 ai_real_time_monitor = AIRealTimeTruthMonitor(correction_threshold=99.0)
 ai_meta_system = AIMetaTruthSystem(correction_threshold=99.0)
+
+# AI 웹 연구원 시스템들
+ai_web_researcher = AIWebResearcher()
+ai_advanced_researcher = AIAdvancedResearcher()
 
 analysis_history = []
 
@@ -883,6 +891,107 @@ def api_ai_self_stats():
         
     except Exception as e:
         return jsonify({'error': f'통계 조회 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/research-question', methods=['POST'])
+def api_research_question():
+    """API: 질문 연구 및 답변"""
+    try:
+        data = request.get_json()
+        question = data.get('question', '').strip()
+        research_type = data.get('type', 'basic')  # basic, advanced
+        
+        if not question:
+            return jsonify({'error': '질문을 입력해주세요.'}), 400
+        
+        # 연구 타입에 따라 다른 연구원 사용
+        if research_type == 'advanced':
+            result = ai_advanced_researcher.research_question(question)
+        else:
+            result = ai_web_researcher.research_question(question)
+        
+        # 결과를 딕셔너리로 변환
+        result_dict = {
+            'question': result.question,
+            'answer': result.answer,
+            'confidence': result.confidence,
+            'sources': [
+                {
+                    'title': source.title,
+                    'url': source.url,
+                    'snippet': source.snippet,
+                    'domain': getattr(source, 'domain', source.source),
+                    'credibility_score': source.credibility_score,
+                    'relevance_score': getattr(source, 'relevance_score', 0.0)
+                } for source in result.sources
+            ],
+            'fact_checks': [
+                {
+                    'statement': fc.statement,
+                    'is_factual': getattr(fc, 'is_factual', fc.is_verified),
+                    'confidence': fc.confidence,
+                    'evidence': fc.evidence,
+                    'verification_method': fc.verification_method
+                } for fc in result.fact_checks
+            ],
+            'reasoning': result.reasoning,
+            'limitations': getattr(result, 'limitations', []),
+            'timestamp': result.timestamp.isoformat()
+        }
+        
+        # 분석 히스토리에 추가
+        analysis_history.append({
+            'id': str(uuid.uuid4()),
+            'type': 'research_question',
+            'question': question,
+            'result': result_dict,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        return jsonify({
+            'success': True,
+            'research_result': result_dict
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'질문 연구 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/verify-fact', methods=['POST'])
+def api_verify_fact():
+    """API: 사실 검증"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        
+        if not statement:
+            return jsonify({'error': '검증할 문장을 입력해주세요.'}), 400
+        
+        # 고급 연구원으로 사실 검증 수행
+        result = ai_advanced_researcher.research_question(f"다음 문장이 사실인지 검증해주세요: {statement}")
+        
+        # 사실 검증 결과 추출
+        fact_verification = {
+            'statement': statement,
+            'is_verified': len(result.fact_verifications) > 0,
+            'confidence': result.confidence,
+            'evidence': [fc.evidence for fc in result.fact_verifications],
+            'sources': [
+                {
+                    'title': source.title,
+                    'url': source.url,
+                    'credibility_score': source.credibility_score
+                } for source in result.sources
+            ],
+            'reasoning': result.reasoning,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            'success': True,
+            'verification_result': fact_verification
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'사실 검증 중 오류가 발생했습니다: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
