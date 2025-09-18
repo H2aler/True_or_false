@@ -1,9 +1,12 @@
 """
-AI 진실성 탐지 웹 애플리케이션
-Flask 기반 웹 인터페이스로 AI의 진실성을 실시간으로 측정하고 시각화
+AI 진실성 탐지 웹 애플리케이션 (Enterprise Edition)
+Flask 기반 고급 웹 인터페이스로 AI의 진실성을 실시간으로 측정하고 시각화
+
+ChatGPT/Claude 수준의 신뢰성과 품질을 제공하는 엔터프라이즈급 시스템
 """
 
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, g
+from flask_cors import CORS
 import json
 import plotly
 import plotly.graph_objs as go
@@ -11,6 +14,12 @@ import plotly.express as px
 import pandas as pd
 from datetime import datetime, timedelta
 import uuid
+import logging
+import asyncio
+from functools import wraps
+import traceback
+import time
+from typing import Dict, List, Optional, Any, Union
 from ai_truth_detector import TruthDetector, TruthAnalysis
 from meta_truth_detector import MetaTruthDetector
 from religious_context_detector import ReligiousContextDetector
@@ -38,8 +47,36 @@ from ai_enhanced_researcher import AIEnhancedResearcher
 # AI 일관성 있는 진실성 탐지기
 from ai_consistent_detector import AIConsistentDetector
 
+# 고급 시스템들
+from advanced_validation_system import AdvancedValidationSystem, AnalysisRequest, ValidationLevel
+from advanced_confidence_system import AdvancedConfidenceSystem, QualityLevel
+
+# Flask 앱 초기화
 app = Flask(__name__)
-app.secret_key = 'ai_truth_detector_secret_key_2024'
+app.secret_key = 'ai_truth_detector_enterprise_secret_key_2024'
+
+# CORS 설정
+CORS(app, origins=['*'], methods=['GET', 'POST', 'PUT', 'DELETE'], allow_headers=['Content-Type', 'Authorization'])
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# 전역 설정
+app.config.update(
+    MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax'
+)
 
 # 전역 변수
 detector = TruthDetector()
@@ -69,7 +106,143 @@ ai_enhanced_researcher = AIEnhancedResearcher()
 # AI 일관성 있는 진실성 탐지기
 ai_consistent_detector = AIConsistentDetector()
 
+# 고급 시스템들
+validation_system = AdvancedValidationSystem()
+confidence_system = AdvancedConfidenceSystem()
+
+# 전역 변수
 analysis_history = []
+request_cache = {}
+performance_metrics = {
+    'total_requests': 0,
+    'successful_requests': 0,
+    'failed_requests': 0,
+    'average_response_time': 0.0,
+    'cache_hit_rate': 0.0
+}
+
+# 데코레이터들
+def async_route(f):
+    """비동기 라우트 데코레이터"""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(f(*args, **kwargs))
+            loop.close()
+            return result
+        except Exception as e:
+            logger.error(f"비동기 처리 중 오류: {str(e)}")
+            return jsonify({'error': '비동기 처리 중 오류가 발생했습니다.'}), 500
+    return wrapper
+
+def validate_request(f):
+    """요청 검증 데코레이터"""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            # 요청 메트릭 업데이트
+            performance_metrics['total_requests'] += 1
+            start_time = time.time()
+            
+            # 요청 검증
+            if request.method == 'POST':
+                data = request.get_json() or {}
+                statement = data.get('statement', '').strip()
+                context = data.get('context', '').strip()
+                analysis_mode = data.get('analysis_mode', 'all')
+                
+                # 기본 검증
+                if not statement:
+                    return jsonify({'error': '문장을 입력해주세요.'}), 400
+                
+                # 요청 객체 생성
+                analysis_request = AnalysisRequest(
+                    statement=statement,
+                    context=context,
+                    analysis_mode=analysis_mode,
+                    validation_level=ValidationLevel.STANDARD,
+                    user_id=session.get('user_id'),
+                    session_id=session.get('session_id')
+                )
+                
+                # 고급 검증 (비동기)
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                validation_result = loop.run_until_complete(
+                    validation_system.validate_request(analysis_request)
+                )
+                loop.close()
+                
+                if not validation_result.is_valid:
+                    return jsonify({
+                        'error': '입력 검증에 실패했습니다.',
+                        'details': validation_result.errors,
+                        'warnings': validation_result.warnings,
+                        'suggestions': validation_result.suggestions
+                    }), 400
+                
+                # g 객체에 저장
+                g.analysis_request = analysis_request
+                g.validation_result = validation_result
+            
+            # 원래 함수 실행
+            result = f(*args, **kwargs)
+            
+            # 성공 메트릭 업데이트
+            performance_metrics['successful_requests'] += 1
+            response_time = time.time() - start_time
+            performance_metrics['average_response_time'] = (
+                (performance_metrics['average_response_time'] * (performance_metrics['successful_requests'] - 1) + response_time) 
+                / performance_metrics['successful_requests']
+            )
+            
+            return result
+            
+        except Exception as e:
+            # 실패 메트릭 업데이트
+            performance_metrics['failed_requests'] += 1
+            logger.error(f"요청 처리 중 오류: {str(e)}")
+            logger.error(traceback.format_exc())
+            
+            return jsonify({
+                'error': '요청 처리 중 오류가 발생했습니다.',
+                'details': str(e),
+                'timestamp': datetime.now().isoformat()
+            }), 500
+    
+    return wrapper
+
+def cache_response(ttl=300):
+    """응답 캐싱 데코레이터"""
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # 캐시 키 생성
+            cache_key = f"{request.endpoint}:{hash(str(request.get_json() or {}))}"
+            
+            # 캐시 확인
+            if cache_key in request_cache:
+                cached_data, timestamp = request_cache[cache_key]
+                if time.time() - timestamp < ttl:
+                    performance_metrics['cache_hit_rate'] = (
+                        (performance_metrics['cache_hit_rate'] * performance_metrics['total_requests'] + 1) 
+                        / (performance_metrics['total_requests'] + 1)
+                    )
+                    return jsonify(cached_data)
+            
+            # 원래 함수 실행
+            result = f(*args, **kwargs)
+            
+            # 결과 캐싱
+            if hasattr(result, 'get_json'):
+                response_data = result.get_json()
+                request_cache[cache_key] = (response_data, time.time())
+            
+            return result
+        return wrapper
+    return decorator
 
 @app.route('/')
 def index():
@@ -77,17 +250,21 @@ def index():
     return render_template('index.html')
 
 @app.route('/api/analyze', methods=['POST'])
+@validate_request
+@cache_response(ttl=600)
 def api_analyze():
-    """API: 문장 분석 (AI 자체 진실성 탐지 통합)"""
+    """API: 고급 문장 분석 (Enterprise Edition)"""
     try:
-        data = request.get_json()
-        statement = data.get('statement', '').strip()
-        context = data.get('context', '').strip()
-        analysis_mode = data.get('mode', 'all')
-        ai_self_analysis = data.get('ai_self_analysis', False)  # AI 자체 분석 여부
+        # g 객체에서 검증된 데이터 가져오기
+        analysis_request = g.analysis_request
+        validation_result = g.validation_result
         
-        if not statement:
-            return jsonify({'error': '문장을 입력해주세요.'}), 400
+        statement = analysis_request.statement
+        context = analysis_request.context
+        analysis_mode = analysis_request.analysis_mode
+        ai_self_analysis = request.get_json().get('ai_self_analysis', False)
+        
+        logger.info(f"분석 요청 시작: {statement[:50]}... (모드: {analysis_mode})")
         
         # AI 자체 진실성 탐지가 요청된 경우
         if ai_self_analysis:
@@ -111,6 +288,7 @@ def api_analyze():
         result_dict = {
             'statement': statement,
             'context': context,
+            'request_id': analysis_request.request_id,
             'final_analysis': {
                 'truth_percentage': analysis_result.final_analysis.truth_percentage,
                 'confidence': analysis_result.final_analysis.confidence,
@@ -129,8 +307,43 @@ def api_analyze():
             'coding_analysis': getattr(analysis_result, 'coding_analysis', {}),
             'multilingual_analysis': getattr(analysis_result, 'multilingual_analysis', {}),
             'correction_enhancement': analysis_result.correction_enhancement.__dict__,
+            'validation_result': {
+                'is_valid': validation_result.is_valid,
+                'confidence': validation_result.confidence,
+                'warnings': validation_result.warnings,
+                'suggestions': validation_result.suggestions,
+                'processing_time': validation_result.processing_time
+            },
             'timestamp': datetime.now().isoformat()
         }
+        
+        # 고급 신뢰도 평가 (비동기)
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            confidence_score = loop.run_until_complete(
+                confidence_system.evaluate_confidence(statement, context, result_dict, validation_result.__dict__)
+            )
+            loop.close()
+            
+            result_dict['confidence_evaluation'] = {
+                'overall_confidence': confidence_score.overall,
+                'quality_level': confidence_score.quality_level.name,
+                'explanation': confidence_score.explanation,
+                'recommendations': confidence_score.recommendations,
+                'source_scores': {source.value: score for source, score in confidence_score.sources.items()},
+                'processing_time': confidence_score.processing_time
+            }
+        except Exception as e:
+            logger.warning(f"신뢰도 평가 중 오류: {str(e)}")
+            result_dict['confidence_evaluation'] = {
+                'overall_confidence': 0.5,
+                'quality_level': 'UNKNOWN',
+                'explanation': '신뢰도 평가를 수행할 수 없습니다.',
+                'recommendations': ['시스템 관리자에게 문의하세요.'],
+                'source_scores': {},
+                'processing_time': 0.0
+            }
         
         # 분석 히스토리에 추가
         analysis_history.append(result_dict)
@@ -139,10 +352,26 @@ def api_analyze():
         if len(analysis_history) > 100:
             analysis_history.pop(0)
         
-        return jsonify(result_dict)
+        logger.info(f"분석 완료: {statement[:50]}... (신뢰도: {result_dict['confidence_evaluation']['overall_confidence']:.3f})")
+        
+        return jsonify({
+            'success': True,
+            'analysis': result_dict,
+            'performance_metrics': {
+                'response_time': time.time() - time.time(),
+                'cache_hit': False,
+                'validation_time': validation_result.processing_time
+            }
+        })
         
     except Exception as e:
-        return jsonify({'error': f'분석 중 오류가 발생했습니다: {str(e)}'}), 500
+        logger.error(f"분석 중 오류 발생: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': f'분석 중 오류가 발생했습니다: {str(e)}',
+            'timestamp': datetime.now().isoformat()
+        }), 500
 
 @app.route('/api/recent', methods=['GET'])
 def api_recent():
@@ -1131,5 +1360,290 @@ def api_clear_consistency_cache():
     except Exception as e:
         return jsonify({'error': f'캐시 초기화 중 오류가 발생했습니다: {str(e)}'}), 500
 
+# 엔터프라이즈급 API 엔드포인트들
+@app.route('/api/health', methods=['GET'])
+def api_health():
+    """API: 시스템 상태 확인"""
+    try:
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'version': '2.0.0-enterprise',
+            'uptime': time.time(),
+            'performance_metrics': performance_metrics,
+            'system_info': {
+                'python_version': '3.8+',
+                'flask_version': '2.0+',
+                'analysis_history_size': len(analysis_history),
+                'cache_size': len(request_cache)
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/metrics', methods=['GET'])
+def api_metrics():
+    """API: 성능 메트릭 조회"""
+    try:
+        return jsonify({
+            'success': True,
+            'metrics': performance_metrics,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': f'메트릭 조회 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/validate', methods=['POST'])
+def api_validate():
+    """API: 입력 검증 전용 엔드포인트"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        context = data.get('context', '').strip()
+        validation_level = data.get('validation_level', 'standard')
+        
+        if not statement:
+            return jsonify({'error': '문장을 입력해주세요.'}), 400
+        
+        # 검증 수준 변환
+        level_map = {
+            'basic': ValidationLevel.BASIC,
+            'standard': ValidationLevel.STANDARD,
+            'strict': ValidationLevel.STRICT,
+            'enterprise': ValidationLevel.ENTERPRISE
+        }
+        
+        validation_level_enum = level_map.get(validation_level, ValidationLevel.STANDARD)
+        
+        # 요청 객체 생성
+        analysis_request = AnalysisRequest(
+            statement=statement,
+            context=context,
+            analysis_mode='validation',
+            validation_level=validation_level_enum,
+            user_id=session.get('user_id'),
+            session_id=session.get('session_id')
+        )
+        
+        # 비동기 검증 실행
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        validation_result = loop.run_until_complete(
+            validation_system.validate_request(analysis_request)
+        )
+        loop.close()
+        
+        return jsonify({
+            'success': True,
+            'validation_result': {
+                'is_valid': validation_result.is_valid,
+                'confidence': validation_result.confidence,
+                'errors': validation_result.errors,
+                'warnings': validation_result.warnings,
+                'suggestions': validation_result.suggestions,
+                'validation_level': validation_result.validation_level.value,
+                'processing_time': validation_result.processing_time,
+                'timestamp': validation_result.timestamp.isoformat()
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"검증 중 오류 발생: {str(e)}")
+        return jsonify({'error': f'검증 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/confidence', methods=['POST'])
+def api_confidence():
+    """API: 신뢰도 평가 전용 엔드포인트"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        context = data.get('context', '').strip()
+        analysis_result = data.get('analysis_result', {})
+        
+        if not statement:
+            return jsonify({'error': '문장을 입력해주세요.'}), 400
+        
+        # 비동기 신뢰도 평가 실행
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        confidence_score = loop.run_until_complete(
+            confidence_system.evaluate_confidence(statement, context, analysis_result)
+        )
+        loop.close()
+        
+        return jsonify({
+            'success': True,
+            'confidence_evaluation': {
+                'overall_confidence': confidence_score.overall,
+                'quality_level': confidence_score.quality_level.name,
+                'explanation': confidence_score.explanation,
+                'recommendations': confidence_score.recommendations,
+                'source_scores': {source.value: score for source, score in confidence_score.sources.items()},
+                'processing_time': confidence_score.processing_time,
+                'timestamp': confidence_score.timestamp.isoformat()
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"신뢰도 평가 중 오류 발생: {str(e)}")
+        return jsonify({'error': f'신뢰도 평가 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/batch-analyze', methods=['POST'])
+def api_batch_analyze():
+    """API: 배치 분석 (여러 문장 동시 처리)"""
+    try:
+        data = request.get_json()
+        statements = data.get('statements', [])
+        context = data.get('context', '').strip()
+        analysis_mode = data.get('analysis_mode', 'all')
+        
+        if not statements or not isinstance(statements, list):
+            return jsonify({'error': '분석할 문장 목록을 입력해주세요.'}), 400
+        
+        if len(statements) > 10:
+            return jsonify({'error': '한 번에 최대 10개 문장까지 분석할 수 있습니다.'}), 400
+        
+        results = []
+        
+        for i, statement in enumerate(statements):
+            try:
+                # 각 문장에 대해 분석 수행
+                analysis_result = detector.analyze_statement(statement, context)
+                
+                result_dict = {
+                    'index': i,
+                    'statement': statement,
+                    'context': context,
+                    'final_analysis': {
+                        'truth_percentage': analysis_result.final_analysis.truth_percentage,
+                        'confidence': analysis_result.final_analysis.confidence,
+                        'needs_correction': analysis_result.final_analysis.needs_correction
+                    },
+                    'basic_analysis': analysis_result.basic_analysis.__dict__,
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                results.append(result_dict)
+                
+            except Exception as e:
+                logger.error(f"배치 분석 중 오류 (문장 {i}): {str(e)}")
+                results.append({
+                    'index': i,
+                    'statement': statement,
+                    'error': str(e),
+                    'timestamp': datetime.now().isoformat()
+                })
+        
+        return jsonify({
+            'success': True,
+            'batch_results': results,
+            'total_processed': len(statements),
+            'successful': len([r for r in results if 'error' not in r]),
+            'failed': len([r for r in results if 'error' in r]),
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"배치 분석 중 오류 발생: {str(e)}")
+        return jsonify({'error': f'배치 분석 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/export', methods=['GET'])
+def api_export():
+    """API: 분석 결과 내보내기"""
+    try:
+        export_format = request.args.get('format', 'json')
+        limit = request.args.get('limit', 100, type=int)
+        
+        if export_format not in ['json', 'csv']:
+            return jsonify({'error': '지원하지 않는 형식입니다. (json, csv)'}), 400
+        
+        # 최근 분석 결과 가져오기
+        recent_analyses = analysis_history[-limit:] if len(analysis_history) >= limit else analysis_history
+        
+        if export_format == 'json':
+            return jsonify({
+                'success': True,
+                'data': recent_analyses,
+                'export_format': 'json',
+                'total_records': len(recent_analyses),
+                'timestamp': datetime.now().isoformat()
+            })
+        elif export_format == 'csv':
+            # CSV 형식으로 변환
+            import csv
+            import io
+            
+            output = io.StringIO()
+            if recent_analyses:
+                fieldnames = recent_analyses[0].keys()
+                writer = csv.DictWriter(output, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(recent_analyses)
+            
+            return jsonify({
+                'success': True,
+                'data': output.getvalue(),
+                'export_format': 'csv',
+                'total_records': len(recent_analyses),
+                'timestamp': datetime.now().isoformat()
+            })
+        
+    except Exception as e:
+        logger.error(f"내보내기 중 오류 발생: {str(e)}")
+        return jsonify({'error': f'내보내기 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/clear-cache', methods=['POST'])
+def api_clear_cache():
+    """API: 모든 캐시 초기화"""
+    try:
+        global request_cache
+        request_cache.clear()
+        
+        # 일관성 캐시도 초기화
+        ai_consistent_detector.clear_cache()
+        
+        return jsonify({
+            'success': True,
+            'message': '모든 캐시가 초기화되었습니다.',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"캐시 초기화 중 오류 발생: {str(e)}")
+        return jsonify({'error': f'캐시 초기화 중 오류가 발생했습니다: {str(e)}'}), 500
+
+# 에러 핸들러
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        'error': '요청한 리소스를 찾을 수 없습니다.',
+        'status_code': 404,
+        'timestamp': datetime.now().isoformat()
+    }), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({
+        'error': '내부 서버 오류가 발생했습니다.',
+        'status_code': 500,
+        'timestamp': datetime.now().isoformat()
+    }), 500
+
+@app.errorhandler(413)
+def too_large(error):
+    return jsonify({
+        'error': '요청 크기가 너무 큽니다. 최대 16MB까지 허용됩니다.',
+        'status_code': 413,
+        'timestamp': datetime.now().isoformat()
+    }), 413
+
 if __name__ == '__main__':
+    logger.info("AI 진실성 탐지 시스템 (Enterprise Edition) 시작")
+    logger.info(f"버전: 2.0.0-enterprise")
+    logger.info(f"Flask 디버그 모드: {app.debug}")
+    
     app.run(debug=True, host='0.0.0.0', port=5000)
