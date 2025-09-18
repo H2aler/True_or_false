@@ -25,6 +25,11 @@ from puns_detector import PunsDetector
 from coding_quality_detector import CodingQualityDetector
 from multilingual_analyzer import MultilingualAnalyzer
 
+# AI 자체 진실성 탐지 시스템들
+from ai_self_truth_detector import AISelfTruthDetector
+from ai_real_time_truth_monitor import AIRealTimeTruthMonitor
+from ai_meta_truth_system import AIMetaTruthSystem
+
 app = Flask(__name__)
 app.secret_key = 'ai_truth_detector_secret_key_2024'
 
@@ -42,6 +47,12 @@ compound_analyzer = CompoundSentenceAnalyzer()
 puns_detector = PunsDetector()
 coding_detector = CodingQualityDetector()
 multilingual_analyzer = MultilingualAnalyzer()
+
+# AI 자체 진실성 탐지 시스템들
+ai_self_detector = AISelfTruthDetector()
+ai_real_time_monitor = AIRealTimeTruthMonitor(correction_threshold=99.0)
+ai_meta_system = AIMetaTruthSystem(correction_threshold=99.0)
+
 analysis_history = []
 
 @app.route('/')
@@ -51,17 +62,22 @@ def index():
 
 @app.route('/api/analyze', methods=['POST'])
 def api_analyze():
-    """API: 문장 분석"""
+    """API: 문장 분석 (AI 자체 진실성 탐지 통합)"""
     try:
         data = request.get_json()
         statement = data.get('statement', '').strip()
         context = data.get('context', '').strip()
         analysis_mode = data.get('mode', 'all')
+        ai_self_analysis = data.get('ai_self_analysis', False)  # AI 자체 분석 여부
         
         if not statement:
             return jsonify({'error': '문장을 입력해주세요.'}), 400
         
-        # 분석 실행
+        # AI 자체 진실성 탐지가 요청된 경우
+        if ai_self_analysis:
+            return perform_ai_self_analysis(statement, context, analysis_mode)
+        
+        # 기존 분석 실행
         analysis_result = detector.analyze_statement(statement, context)
         
         # 분석 모드에 따른 추가 처리
@@ -730,6 +746,143 @@ def perform_multilingual_analysis(statement, context):
     except Exception as e:
         logger.error(f"다국어 분석 중 오류: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+def perform_ai_self_analysis(statement, context, analysis_mode):
+    """AI 자체 진실성 분석 수행"""
+    try:
+        # AI 자체 진실성 탐지 실행
+        ai_self_analysis = ai_self_detector.analyze_self(statement, context)
+        
+        # 실시간 모니터링 분석
+        real_time_analysis = ai_real_time_monitor.analyze_statement(statement)
+        
+        # 메타 시스템 분석
+        meta_analysis = ai_meta_system.analyze_statement(statement)
+        
+        # 분석 결과 통합
+        analysis_id = str(uuid.uuid4())
+        analysis_record = {
+            'id': analysis_id,
+            'statement': statement,
+            'context': context,
+            'timestamp': datetime.now().isoformat(),
+            'analysis_type': 'ai_self_analysis',
+            
+            # AI 자체 분석 결과
+            'ai_self_analysis': {
+                'original_statement': ai_self_analysis.original_statement,
+                'truth_percentage': ai_self_analysis.truth_percentage,
+                'truth_level': ai_self_analysis.truth_level.value,
+                'detected_lies': ai_self_analysis.detected_lies,
+                'confidence_score': ai_self_analysis.confidence_score,
+                'correction_suggestions': ai_self_analysis.correction_suggestions,
+                'corrected_statement': ai_self_analysis.corrected_statement,
+                'self_reflection': ai_self_analysis.self_reflection,
+                'analysis_timestamp': ai_self_analysis.analysis_timestamp.isoformat(),
+                'processing_time': ai_self_analysis.processing_time
+            },
+            
+            # 실시간 모니터링 결과
+            'real_time_analysis': {
+                'statement': real_time_analysis.statement,
+                'truth_percentage': real_time_analysis.truth_percentage,
+                'needs_correction': real_time_analysis.needs_correction,
+                'corrected_statement': real_time_analysis.corrected_statement,
+                'correction_reason': real_time_analysis.correction_reason,
+                'timestamp': real_time_analysis.timestamp.isoformat(),
+                'processing_time': real_time_analysis.processing_time
+            },
+            
+            # 메타 시스템 분석 결과
+            'meta_system_analysis': {
+                'statement_id': meta_analysis.statement_id,
+                'original_statement': meta_analysis.original_statement,
+                'truth_percentage': meta_analysis.truth_percentage,
+                'truth_level': meta_analysis.truth_level.value,
+                'confidence_score': meta_analysis.confidence_score,
+                'detected_issues': meta_analysis.detected_issues,
+                'correction_suggestions': meta_analysis.correction_suggestions,
+                'corrected_statement': meta_analysis.corrected_statement,
+                'correction_applied': meta_analysis.correction_applied,
+                'self_reflection': meta_analysis.self_reflection,
+                'analysis_timestamp': meta_analysis.analysis_timestamp.isoformat(),
+                'processing_time': meta_analysis.processing_time
+            },
+            
+            # 통합 최종 분석
+            'final_analysis': {
+                'truth_percentage': meta_analysis.truth_percentage,
+                'confidence': meta_analysis.confidence_score,
+                'needs_correction': meta_analysis.correction_applied,
+                'corrected_statement': meta_analysis.corrected_statement,
+                'ai_self_awareness': True,
+                'meta_cognitive_analysis': True,
+                'real_time_monitoring': True
+            }
+        }
+        
+        # 분석 히스토리에 추가
+        analysis_history.append(analysis_record)
+        
+        # 최근 100개만 유지
+        if len(analysis_history) > 100:
+            analysis_history.pop(0)
+        
+        return jsonify({
+            'success': True,
+            'analysis': analysis_record
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'AI 자체 분석 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/ai-self-analysis', methods=['POST'])
+def api_ai_self_analysis():
+    """API: AI 자체 진실성 분석 전용 엔드포인트"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        context = data.get('context', '').strip()
+        
+        if not statement:
+            return jsonify({'error': '문장을 입력해주세요.'}), 400
+        
+        return perform_ai_self_analysis(statement, context, 'all')
+        
+    except Exception as e:
+        return jsonify({'error': f'AI 자체 분석 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/ai-meta-report', methods=['GET'])
+def api_ai_meta_report():
+    """API: AI 메타 보고서 생성"""
+    try:
+        meta_report = ai_meta_system.generate_meta_report()
+        stats = ai_meta_system.get_stats()
+        
+        return jsonify({
+            'success': True,
+            'meta_report': meta_report,
+            'statistics': stats
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'메타 보고서 생성 중 오류가 발생했습니다: {str(e)}'}), 500
+
+@app.route('/api/ai-self-stats', methods=['GET'])
+def api_ai_self_stats():
+    """API: AI 자체 분석 통계"""
+    try:
+        real_time_stats = ai_real_time_monitor.get_stats()
+        meta_stats = ai_meta_system.get_stats()
+        
+        return jsonify({
+            'success': True,
+            'real_time_stats': real_time_stats,
+            'meta_stats': meta_stats
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'통계 조회 중 오류가 발생했습니다: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -52,6 +52,26 @@
                         </button>
                     </div>
                 </div>
+                <div class="row mt-3">
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-danger w-100 analysis-mode-btn" data-mode="ai-self">
+                            <i class="fas fa-robot me-2"></i>AI 자체 분석
+                            <small class="d-block">AI가 스스로 자신을 분석</small>
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-warning w-100 analysis-mode-btn" data-mode="real-time">
+                            <i class="fas fa-clock me-2"></i>실시간 모니터링
+                            <small class="d-block">실시간 거짓말 감지</small>
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-dark w-100 analysis-mode-btn" data-mode="meta">
+                            <i class="fas fa-brain me-2"></i>메타-인지 분석
+                            <small class="d-block">AI의 자기 인식</small>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -183,7 +203,10 @@ document.addEventListener('DOMContentLoaded', function() {
             'all': '모든 분석 기능을 사용하여 종합적으로 문장을 분석합니다.',
             'puns': '언어적 유머와 말장난을 감지하고 이해합니다.',
             'coding': '코딩 품질과 의도적 조작을 분석합니다.',
-            'multilingual': '다국어 문장을 분석하고 언어별 의미를 파악합니다.'
+            'multilingual': '다국어 문장을 분석하고 언어별 의미를 파악합니다.',
+            'ai-self': 'AI가 스스로 자신의 출력을 분석하여 거짓말을 감지하고 교정합니다.',
+            'real-time': '실시간으로 AI의 출력을 모니터링하고 즉시 교정합니다.',
+            'meta': 'AI의 메타-인지 능력을 활용한 고급 진실성 탐지와 자기 성찰을 수행합니다.'
         };
         
         const descriptionElement = document.querySelector('.lead.text-muted');
@@ -210,17 +233,31 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             // 선택된 모드에 따라 다른 API 엔드포인트 사용
-            const endpoint = currentAnalysisMode === 'all' ? '/analyze' : `/analyze/${currentAnalysisMode}`;
+            let endpoint, requestBody;
+            
+            if (currentAnalysisMode === 'ai-self' || currentAnalysisMode === 'real-time' || currentAnalysisMode === 'meta') {
+                // AI 자체 분석 모드들
+                endpoint = '/api/ai-self-analysis';
+                requestBody = {
+                    statement: statement,
+                    context: context,
+                    ai_self_analysis: true
+                };
+            } else {
+                // 기존 모드들
+                endpoint = currentAnalysisMode === 'all' ? '/analyze' : `/analyze/${currentAnalysisMode}`;
+                requestBody = {
+                    statement: statement,
+                    context: context
+                };
+            }
             
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    statement: statement,
-                    context: context
-                })
+                body: JSON.stringify(requestBody)
             });
             
             const data = await response.json();
@@ -245,6 +282,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 통합 분석 결과 표시
     function displayAnalysisResult(analysis) {
+        // AI 자체 분석 결과인지 확인
+        if (analysis.analysis_type === 'ai_self_analysis') {
+            displayAISelfAnalysisResult(analysis);
+            return;
+        }
+        
         const finalAnalysis = analysis.final_analysis;
         const truthPercentage = (finalAnalysis.truth_percentage * 100).toFixed(1);
         const confidence = (finalAnalysis.confidence * 100).toFixed(1);
@@ -617,6 +660,165 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('최근 분석 결과 로드 실패:', error);
         }
+    }
+    
+    // AI 자체 분석 결과 표시
+    function displayAISelfAnalysisResult(analysis) {
+        const aiSelfAnalysis = analysis.ai_self_analysis;
+        const realTimeAnalysis = analysis.real_time_analysis;
+        const metaSystemAnalysis = analysis.meta_system_analysis;
+        const finalAnalysis = analysis.final_analysis;
+        
+        const truthPercentage = (finalAnalysis.truth_percentage * 100).toFixed(1);
+        const confidence = (finalAnalysis.confidence * 100).toFixed(1);
+        
+        let resultHtml = `
+            <div class="alert alert-info">
+                <i class="fas fa-robot me-2"></i>
+                <strong>AI 자체 진실성 분석!</strong> AI가 스스로 자신의 출력을 분석했습니다.
+            </div>
+            
+            <div class="mb-3">
+                <h6>🤖 AI 자체 분석 결과</h6>
+                <div class="truth-meter mb-2">
+                    <div class="truth-indicator" style="width: ${truthPercentage}%"></div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="badge bg-${truthPercentage >= 99 ? 'success' : truthPercentage >= 70 ? 'warning' : 'danger'} fs-6">
+                        ${truthPercentage}%
+                    </span>
+                    <small class="text-muted">신뢰도: ${confidence}%</small>
+                </div>
+            </div>
+        `;
+        
+        // AI 자체 분석 상세 결과
+        resultHtml += `
+            <div class="mb-3">
+                <h6><i class="fas fa-mirror text-primary me-2"></i>AI 자기 성찰</h6>
+                <div class="alert alert-light">
+                    <strong>진실성 수준:</strong> ${aiSelfAnalysis.truth_level}<br>
+                    <strong>감지된 거짓말:</strong> ${aiSelfAnalysis.detected_lies.length}개<br>
+                    <strong>AI 자기 성찰:</strong><br>
+                    <em>${aiSelfAnalysis.self_reflection}</em>
+                </div>
+            </div>
+        `;
+        
+        // 실시간 모니터링 결과
+        if (realTimeAnalysis.needs_correction) {
+            resultHtml += `
+                <div class="mb-3">
+                    <h6><i class="fas fa-clock text-warning me-2"></i>실시간 모니터링 결과</h6>
+                    <div class="alert alert-warning">
+                        <strong>자동 교정 적용!</strong> ${realTimeAnalysis.correction_reason}<br>
+                        <strong>원본:</strong> ${realTimeAnalysis.statement}<br>
+                        <strong>교정:</strong> ${realTimeAnalysis.corrected_statement}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 메타 시스템 분석 결과
+        resultHtml += `
+            <div class="mb-3">
+                <h6><i class="fas fa-brain text-dark me-2"></i>메타-인지 분석</h6>
+                <div class="alert alert-secondary">
+                    <strong>자기 인식 수준:</strong> ${(metaSystemAnalysis.confidence_score * 100).toFixed(1)}%<br>
+                    <strong>감지된 문제:</strong> ${metaSystemAnalysis.detected_issues.length}개<br>
+                    <strong>교정 적용:</strong> ${metaSystemAnalysis.correction_applied ? '예' : '아니오'}<br>
+                    <strong>AI 자기 성찰:</strong><br>
+                    <em>${metaSystemAnalysis.self_reflection}</em>
+                </div>
+            </div>
+        `;
+        
+        // 감지된 문제점들 표시
+        if (aiSelfAnalysis.detected_lies.length > 0) {
+            resultHtml += `
+                <div class="mb-3">
+                    <h6>🔍 AI가 감지한 거짓말 패턴:</h6>
+                    <ul class="list-unstyled">
+                        ${aiSelfAnalysis.detected_lies.map(lie => `<li><i class="fas fa-times text-danger me-2"></i>${lie}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // 교정 제안 표시
+        if (aiSelfAnalysis.correction_suggestions.length > 0) {
+            resultHtml += `
+                <div class="mb-3">
+                    <h6>💡 AI의 교정 제안:</h6>
+                    <ul class="list-unstyled">
+                        ${aiSelfAnalysis.correction_suggestions.map(suggestion => `<li><i class="fas fa-lightbulb text-warning me-2"></i>${suggestion}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // 교정된 문장 표시
+        if (aiSelfAnalysis.corrected_statement && aiSelfAnalysis.corrected_statement !== aiSelfAnalysis.original_statement) {
+            resultHtml += `
+                <div class="mb-3">
+                    <h6>📝 AI 자체 교정 결과:</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-danger">원본 문장:</h6>
+                            <div class="bg-danger bg-opacity-10 p-3 rounded">
+                                <em>${aiSelfAnalysis.original_statement}</em>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">교정된 문장:</h6>
+                            <div class="bg-success bg-opacity-10 p-3 rounded">
+                                <em>${aiSelfAnalysis.corrected_statement}</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 처리 시간 표시
+        resultHtml += `
+            <div class="mb-3">
+                <h6>⏱️ 분석 성능</h6>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <small class="text-muted">AI 자체 분석</small><br>
+                        <strong>${aiSelfAnalysis.processing_time.toFixed(3)}초</strong>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">실시간 모니터링</small><br>
+                        <strong>${realTimeAnalysis.processing_time.toFixed(3)}초</strong>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">메타 시스템</small><br>
+                        <strong>${metaSystemAnalysis.processing_time.toFixed(3)}초</strong>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 최종 상태 표시
+        if (finalAnalysis.needs_correction) {
+            resultHtml += `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>AI가 거짓말을 감지했습니다!</strong> 자동으로 교정이 적용되었습니다.
+                </div>
+            `;
+        } else {
+            resultHtml += `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>AI가 진실성을 확인했습니다!</strong> 이 문장은 신뢰할 수 있습니다.
+                </div>
+            `;
+        }
+        
+        document.getElementById('analysisResult').innerHTML = resultHtml;
     }
     
     // 페이지 로드 시 최근 분석 결과 로드
