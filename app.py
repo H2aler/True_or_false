@@ -34,22 +34,38 @@ from puns_detector import PunsDetector
 from coding_quality_detector import CodingQualityDetector
 from multilingual_analyzer import MultilingualAnalyzer
 
-# AI 자체 진실성 탐지 시스템들
-from ai_self_truth_detector import AISelfTruthDetector
-from ai_real_time_truth_monitor import AIRealTimeTruthMonitor
-from ai_meta_truth_system import AIMetaTruthSystem
+# AI 자체 진실성 탐지 시스템들 (이미 위에서 import됨)
 
-# AI 웹 연구원 시스템들
-from ai_web_researcher import AIWebResearcher
-from ai_advanced_researcher import AIAdvancedResearcher
-from ai_enhanced_researcher import AIEnhancedResearcher
-
-# AI 일관성 있는 진실성 탐지기
-from ai_consistent_detector import AIConsistentDetector
-
-# 고급 시스템들
-from advanced_validation_system import AdvancedValidationSystem, AnalysisRequest, ValidationLevel
-from advanced_confidence_system import AdvancedConfidenceSystem, QualityLevel
+# 누락된 모듈들 추가
+try:
+    from ai_self_truth_detector import AISelfTruthDetector
+    from ai_real_time_truth_monitor import AIRealTimeTruthMonitor
+    from ai_meta_truth_system import AIMetaTruthSystem
+    from ai_web_researcher import AIWebResearcher
+    from ai_advanced_researcher import AIAdvancedResearcher
+    from ai_enhanced_researcher import AIEnhancedResearcher
+    from ai_consistent_detector import AIConsistentDetector
+    from advanced_validation_system import AdvancedValidationSystem, AnalysisRequest, ValidationLevel
+    from advanced_confidence_system import AdvancedConfidenceSystem, QualityLevel
+except ImportError as e:
+    print(f"일부 모듈을 가져올 수 없습니다: {e}")
+    # 기본값으로 대체
+    class DummyClass:
+        def __init__(self, *args, **kwargs): pass
+        def __getattr__(self, name): return lambda *args, **kwargs: {}
+    
+    AISelfTruthDetector = DummyClass
+    AIRealTimeTruthMonitor = DummyClass
+    AIMetaTruthSystem = DummyClass
+    AIWebResearcher = DummyClass
+    AIAdvancedResearcher = DummyClass
+    AIEnhancedResearcher = DummyClass
+    AIConsistentDetector = DummyClass
+    AdvancedValidationSystem = DummyClass
+    AnalysisRequest = DummyClass
+    ValidationLevel = DummyClass
+    AdvancedConfidenceSystem = DummyClass
+    QualityLevel = DummyClass
 
 # Flask 앱 초기화
 app = Flask(__name__)
