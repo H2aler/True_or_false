@@ -381,6 +381,15 @@
 document.addEventListener('DOMContentLoaded', function() {
         console.log('AI 진실성 탐지기 로드 완료');
         
+        // 환경 정보 표시
+        setTimeout(() => {
+            if (API_CONFIG.isGitHubPages) {
+                showEnvironmentInfo('github-pages');
+            } else {
+                showEnvironmentInfo('local');
+            }
+        }, 1000);
+        
         // 브라우저 확장 프로그램 오류 방지
         window.addEventListener('error', function(e) {
             if (e.message && e.message.includes('Extension context invalidated')) {
@@ -409,15 +418,31 @@ document.addEventListener('DOMContentLoaded', function() {
             originalConsoleError.apply(console, args);
         };
         
-        // API 설정
+        // 환경 감지 및 API 설정
+        const isGitHubPages = window.location.hostname === 'h2aler.github.io' || 
+                             window.location.hostname.includes('github.io');
+        
         const API_CONFIG = {
-            baseUrl: 'http://localhost:5000/api',
+            baseUrl: isGitHubPages ? null : 'http://localhost:5000/api', // GitHub Pages에서는 API 비활성화
             timeout: 10000,
-            retryAttempts: 3
+            retryAttempts: 3,
+            isGitHubPages: isGitHubPages
         };
+        
+        // 환경 정보 로깅
+        if (isGitHubPages) {
+            console.log('🌐 GitHub Pages 환경 감지됨 - 로컬 분석 모드로 작동');
+        } else {
+            console.log('💻 로컬 환경 감지됨 - 하이브리드 분석 모드로 작동');
+        }
         
         // API 호출 함수
         window.apiCall = async function(endpoint, method = 'GET', data = null) {
+            // GitHub Pages에서는 API 호출 비활성화
+            if (API_CONFIG.isGitHubPages || !API_CONFIG.baseUrl) {
+                throw new Error('GitHub Pages 환경에서는 API 호출이 비활성화되어 있습니다.');
+            }
+            
             const url = `${API_CONFIG.baseUrl}${endpoint}`;
             const options = {
                 method: method,
@@ -494,14 +519,31 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 하이브리드 분석 함수 (파이썬 + 로컬)
         window.hybridAnalyze = async function(statement, context = null) {
-            // 파이썬 백엔드 시도
-            const pythonResult = await analyzeWithPython(statement, context);
-            if (pythonResult) {
+            // GitHub Pages에서는 바로 로컬 분석 사용
+            if (API_CONFIG.isGitHubPages) {
+                console.log('🌐 GitHub Pages 환경: 로컬 분석 사용');
+                const localResult = generateDemoResult(statement, context);
                 return {
-                    ...pythonResult,
-                    source: 'python',
-                    enhanced: true
+                    ...localResult,
+                    source: 'local',
+                    enhanced: false,
+                    environment: 'github-pages'
                 };
+            }
+            
+            // 로컬 환경에서는 파이썬 백엔드 시도
+            try {
+                const pythonResult = await analyzeWithPython(statement, context);
+                if (pythonResult) {
+                    return {
+                        ...pythonResult,
+                        source: 'python',
+                        enhanced: true,
+                        environment: 'local'
+                    };
+                }
+            } catch (error) {
+                console.warn('파이썬 백엔드 사용 불가, 로컬 분석으로 폴백:', error.message);
             }
             
             // 로컬 분석으로 폴백
@@ -509,7 +551,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return {
                 ...localResult,
                 source: 'local',
-                enhanced: false
+                enhanced: false,
+                environment: 'local-fallback'
             };
         };
         
@@ -1561,6 +1604,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 대시보드 데이터 로드 (하이브리드)
     async function loadDashboardData() {
+        // GitHub Pages에서는 바로 로컬 데이터 사용
+        if (API_CONFIG.isGitHubPages) {
+            console.log('🌐 GitHub Pages 환경: 로컬 대시보드 데이터 사용');
+            loadLocalDashboardData();
+            return;
+        }
+        
         try {
             // 파이썬 백엔드 통계 시도
             const pythonStats = await getPythonStatistics();
@@ -1572,6 +1622,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.warn('파이썬 백엔드 통계 조회 실패, 로컬 데이터로 폴백:', error.message);
         }
+        
+        loadLocalDashboardData();
+    }
+    
+    // 로컬 대시보드 데이터 로드 함수
+    function loadLocalDashboardData() {
         
         // 로컬 스토리지에서 대시보드 데이터 가져오기
         const storedAnalyses = localStorage.getItem('recentAnalyses');
@@ -2048,7 +2104,25 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             try {
-                // 하이브리드 배치 분석 실행
+                // GitHub Pages에서는 바로 로컬 분석 사용
+                if (API_CONFIG.isGitHubPages) {
+                    console.log('🌐 GitHub Pages 환경: 로컬 배치 분석 사용');
+                    const localResults = [];
+                    for (const statement of statements) {
+                        const result = generateDemoResult(statement);
+                        localResults.push({
+                            statement: statement,
+                            truth_percentage: result.final_analysis.truth_percentage,
+                            needs_correction: result.final_analysis.needs_correction,
+                            detected_issues: result.final_analysis.detected_issues,
+                            correction_suggestions: result.correction_enhancement.corrected_statements
+                        });
+                    }
+                    displayBatchResults(localResults, 'local');
+                    return;
+                }
+                
+                // 로컬 환경에서는 하이브리드 배치 분석 실행
                 const batchResult = await batchAnalyzeWithPython(statements);
                 
                 if (batchResult && batchResult.results) {
@@ -2145,6 +2219,66 @@ document.addEventListener('DOMContentLoaded', function() {
             
             html += '</div>';
             resultsDiv.innerHTML = html;
+        }
+        
+        // 환경 정보 표시 함수
+        function showEnvironmentInfo(environment) {
+            const environmentInfo = {
+                'github-pages': {
+                    title: '🌐 GitHub Pages 환경',
+                    message: '로컬 분석 모드로 작동합니다. 파이썬 백엔드의 고급 기능을 사용하려면 로컬에서 실행하세요.',
+                    type: 'info',
+                    icon: 'fas fa-globe'
+                },
+                'local': {
+                    title: '💻 로컬 환경',
+                    message: '하이브리드 분석 모드로 작동합니다. 파이썬 백엔드가 실행 중이면 고급 분석을 제공합니다.',
+                    type: 'success',
+                    icon: 'fas fa-desktop'
+                }
+            };
+            
+            const info = environmentInfo[environment];
+            if (!info) return;
+            
+            // 토스트 알림으로 환경 정보 표시
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${info.type === 'info' ? 'info' : 'success'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '9999';
+            toast.style.minWidth = '300px';
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="${info.icon} me-2"></i>
+                        <strong>${info.title}</strong><br>
+                        ${info.message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="닫기"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Bootstrap 토스트 초기화 및 표시
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: 5000
+            });
+            bsToast.show();
+            
+            // 토스트가 숨겨진 후 DOM에서 제거
+            toast.addEventListener('hidden.bs.toast', () => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            });
         }
 </script>
 </body>
