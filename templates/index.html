@@ -81,6 +81,12 @@
                         </button>
                     </div>
                     <div class="col-md-6 mb-2">
+                        <button class="btn btn-outline-info w-100 analysis-mode-btn" data-mode="enhanced-research">
+                            <i class="fas fa-search-plus me-2"></i>향상된 웹 연구
+                            <small class="d-block">실시간 검색 과정 표시</small>
+                        </button>
+                    </div>
+                    <div class="col-md-6 mb-2">
                         <button class="btn btn-outline-success w-100 analysis-mode-btn" data-mode="verify">
                             <i class="fas fa-check-double me-2"></i>사실 검증
                             <small class="d-block">정보의 진실성 확인</small>
@@ -185,6 +191,58 @@
 {% endblock %}
 
 {% block extra_js %}
+<style>
+/* 타임라인 스타일 */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid #007bff;
+}
+
+.timeline-title {
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.timeline-description {
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #6c757d;
+}
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('analysisForm');
@@ -252,6 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'real-time': '실시간으로 AI의 출력을 모니터링하고 즉시 교정합니다.',
             'meta': 'AI의 메타-인지 능력을 활용한 고급 진실성 탐지와 자기 성찰을 수행합니다.',
             'research': '인터넷에서 정보를 검색하고 신뢰성을 평가하여 질문에 답변합니다.',
+            'enhanced-research': '실시간 검색 과정을 표시하며 인터넷에서 정보를 검색하고 답변합니다.',
             'verify': '주어진 문장의 사실성을 검증하고 증거를 제시합니다.'
         };
         
@@ -272,6 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'real-time': '실시간 모니터링',
             'meta': '메타-인지 분석',
             'research': '웹 연구',
+            'enhanced-research': '향상된 웹 연구',
             'verify': '사실 검증'
         };
         
@@ -372,6 +432,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     question: statement,
                     type: 'advanced'
                 };
+            } else if (currentAnalysisMode === 'enhanced-research') {
+                // 향상된 웹 연구 모드
+                endpoint = '/api/research-question';
+                requestBody = {
+                    question: statement,
+                    type: 'enhanced'
+                };
             } else if (currentAnalysisMode === 'verify') {
                 // 사실 검증 모드
                 endpoint = '/api/verify-fact';
@@ -398,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                if (currentAnalysisMode === 'research') {
+                if (currentAnalysisMode === 'research' || currentAnalysisMode === 'enhanced-research') {
                     displayResearchResult(data.research_result);
                 } else if (currentAnalysisMode === 'verify') {
                     displayVerificationResult(data.verification_result);
@@ -966,10 +1033,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayResearchResult(result) {
         const resultDiv = document.getElementById('analysisResult');
         
+        // 향상된 웹 연구인지 확인
+        const isEnhanced = result.search_progress && result.search_progress.length > 0;
+        
         let html = `
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>웹 연구 결과</h5>
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>${isEnhanced ? '향상된 웹 연구 결과' : '웹 연구 결과'}</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -1004,6 +1074,37 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     
+                    ${isEnhanced ? `
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-cogs me-2"></i>검색 진행 과정</h6>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="timeline">
+                                            ${result.search_progress.map((progress, index) => `
+                                                <div class="timeline-item">
+                                                    <div class="timeline-marker bg-${progress.status === 'completed' ? 'success' : progress.status === 'failed' ? 'danger' : progress.status === 'in_progress' ? 'warning' : 'primary'}"></div>
+                                                    <div class="timeline-content">
+                                                        <h6 class="timeline-title">
+                                                            <i class="fas fa-${progress.status === 'completed' ? 'check-circle' : progress.status === 'failed' ? 'times-circle' : progress.status === 'in_progress' ? 'clock' : 'play-circle'} me-2"></i>
+                                                            ${progress.step}
+                                                        </h6>
+                                                        <p class="timeline-description">${progress.description}</p>
+                                                        ${progress.details ? `<small class="text-muted">${progress.details}</small>` : ''}
+                                                        <div class="progress mt-2" style="height: 4px;">
+                                                            <div class="progress-bar bg-${progress.status === 'completed' ? 'success' : progress.status === 'failed' ? 'danger' : 'warning'}" 
+                                                                 style="width: ${progress.progress_percentage}%"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
                     <div class="row">
                         <div class="col-md-12">
                             <h6><i class="fas fa-book me-2"></i>참고 소스</h6>
@@ -1022,6 +1123,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                                         </span>
                                                     </div>
                                                 </div>
+                                                ${source.search_engine ? `<small class="text-info">검색 엔진: ${source.search_engine}</small><br>` : ''}
+                                                ${source.search_keyword ? `<small class="text-secondary">키워드: ${source.search_keyword}</small><br>` : ''}
+                                                ${source.processing_time ? `<small class="text-muted">처리 시간: ${source.processing_time.toFixed(2)}초</small><br>` : ''}
                                                 <a href="${source.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
                                                     <i class="fas fa-external-link-alt me-1"></i>원문 보기
                                                 </a>
@@ -1082,6 +1186,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <small class="text-muted">
                                 <i class="fas fa-info-circle me-1"></i>
                                 연구 시간: ${new Date(result.timestamp).toLocaleString('ko-KR')}
+                                ${result.total_processing_time ? ` | 총 처리 시간: ${result.total_processing_time.toFixed(2)}초` : ''}
                             </small>
                         </div>
                     </div>

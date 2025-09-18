@@ -33,6 +33,7 @@ from ai_meta_truth_system import AIMetaTruthSystem
 # AI 웹 연구원 시스템들
 from ai_web_researcher import AIWebResearcher
 from ai_advanced_researcher import AIAdvancedResearcher
+from ai_enhanced_researcher import AIEnhancedResearcher
 
 app = Flask(__name__)
 app.secret_key = 'ai_truth_detector_secret_key_2024'
@@ -60,6 +61,7 @@ ai_meta_system = AIMetaTruthSystem(correction_threshold=99.0)
 # AI 웹 연구원 시스템들
 ai_web_researcher = AIWebResearcher()
 ai_advanced_researcher = AIAdvancedResearcher()
+ai_enhanced_researcher = AIEnhancedResearcher()
 
 analysis_history = []
 
@@ -898,13 +900,15 @@ def api_research_question():
     try:
         data = request.get_json()
         question = data.get('question', '').strip()
-        research_type = data.get('type', 'basic')  # basic, advanced
+        research_type = data.get('type', 'basic')  # basic, advanced, enhanced
         
         if not question:
             return jsonify({'error': '질문을 입력해주세요.'}), 400
         
         # 연구 타입에 따라 다른 연구원 사용
-        if research_type == 'advanced':
+        if research_type == 'enhanced':
+            result = ai_enhanced_researcher.research_question(question)
+        elif research_type == 'advanced':
             result = ai_advanced_researcher.research_question(question)
         else:
             result = ai_web_researcher.research_question(question)
@@ -919,22 +923,36 @@ def api_research_question():
                     'title': source.title,
                     'url': source.url,
                     'snippet': source.snippet,
-                    'domain': getattr(source, 'domain', source.source),
+                    'domain': getattr(source, 'domain', getattr(source, 'source', '')),
                     'credibility_score': source.credibility_score,
-                    'relevance_score': getattr(source, 'relevance_score', 0.0)
+                    'relevance_score': getattr(source, 'relevance_score', 0.0),
+                    'search_engine': getattr(source, 'search_engine', ''),
+                    'search_keyword': getattr(source, 'search_keyword', ''),
+                    'processing_time': getattr(source, 'processing_time', 0.0)
                 } for source in result.sources
             ],
             'fact_checks': [
                 {
-                    'statement': fc.statement,
-                    'is_factual': getattr(fc, 'is_factual', fc.is_verified),
-                    'confidence': fc.confidence,
-                    'evidence': fc.evidence,
-                    'verification_method': fc.verification_method
+                    'statement': fc.get('statement', fc.statement if hasattr(fc, 'statement') else ''),
+                    'is_factual': getattr(fc, 'is_factual', fc.get('is_verified', fc.is_verified if hasattr(fc, 'is_verified') else False)),
+                    'confidence': fc.confidence if hasattr(fc, 'confidence') else fc.get('confidence', 0.0),
+                    'evidence': fc.evidence if hasattr(fc, 'evidence') else fc.get('evidence', []),
+                    'verification_method': fc.verification_method if hasattr(fc, 'verification_method') else fc.get('verification_method', '')
                 } for fc in result.fact_checks
             ],
             'reasoning': result.reasoning,
             'limitations': getattr(result, 'limitations', []),
+            'search_progress': [
+                {
+                    'step': progress.step,
+                    'description': progress.description,
+                    'status': progress.status,
+                    'details': progress.details,
+                    'timestamp': progress.timestamp.isoformat(),
+                    'progress_percentage': progress.progress_percentage
+                } for progress in getattr(result, 'search_progress', [])
+            ],
+            'total_processing_time': getattr(result, 'total_processing_time', 0.0),
             'timestamp': result.timestamp.isoformat()
         }
         
