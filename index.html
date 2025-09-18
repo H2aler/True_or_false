@@ -406,17 +406,19 @@ document.addEventListener('DOMContentLoaded', function() {
             originalConsoleError.apply(console, args);
         };
         
-        // 모달 접근성 관리 함수
-        function manageModalAccessibility(modalElement) {
+        // 모달 접근성 관리 함수 (전역 스코프로 이동)
+        window.manageModalAccessibility = function(modalElement) {
             if (!modalElement) return;
             
             // 모달이 표시될 때
             modalElement.addEventListener('shown.bs.modal', function() {
-                this.setAttribute('aria-hidden', 'false');
+                // Bootstrap이 자동으로 aria-hidden을 관리하므로 수동 설정 제거
                 // 첫 번째 포커스 가능한 요소에 포커스
                 const firstFocusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
                 if (firstFocusable) {
-                    firstFocusable.focus();
+                    setTimeout(() => {
+                        firstFocusable.focus();
+                    }, 100); // Bootstrap 애니메이션 완료 후 포커스
                 }
             });
             
@@ -431,14 +433,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 모달이 완전히 닫힌 후
             modalElement.addEventListener('hidden.bs.modal', function() {
-                this.setAttribute('aria-hidden', 'true');
+                // Bootstrap이 자동으로 aria-hidden을 관리하므로 수동 설정 제거
                 // 포커스를 메인 컨텐츠로 이동
                 const mainContent = document.querySelector('main') || document.querySelector('.container');
                 if (mainContent) {
                     mainContent.focus();
                 }
             });
-        }
+        };
         
     const form = document.getElementById('analysisForm');
     const loading = document.querySelector('.loading');
@@ -1293,12 +1295,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // 새 모달 추가
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        // 모달 표시
-        const modal = new bootstrap.Modal(document.getElementById('demoModal'));
-        modal.show();
+        // 모달 접근성 관리 (모달 표시 전에 설정)
+        const modalElement = document.getElementById('demoModal');
+        manageModalAccessibility(modalElement);
         
-        // 모달 접근성 관리
-        manageModalAccessibility(document.getElementById('demoModal'));
+        // 모달 표시
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
         
         // 전역 변수에 저장
         window.demoStatements = statements;
@@ -1426,12 +1429,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // 새 모달 추가
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        // 모달 표시
-        const modal = new bootstrap.Modal(document.getElementById('dashboardModal'));
-        modal.show();
+        // 모달 접근성 관리 (모달 표시 전에 설정)
+        const modalElement = document.getElementById('dashboardModal');
+        manageModalAccessibility(modalElement);
         
-        // 모달 접근성 관리
-        manageModalAccessibility(document.getElementById('dashboardModal'));
+        // 모달 표시
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
         
         // 대시보드 데이터 로드
         loadDashboardData();
