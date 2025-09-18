@@ -521,6 +521,129 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
         });
         
+        // 여러 교정 문장 생성 함수
+        function generateMultipleCorrections(statement) {
+            const corrections = [];
+            const lowerStatement = statement.toLowerCase();
+            
+            // 1. 보수적 교정 (과장 표현 완화)
+            let conservative = statement;
+            conservative = conservative.replace(/완전히|절대적으로|100%|모든|항상/g, (match) => {
+                const replacements = {
+                    '완전히': '대부분',
+                    '절대적으로': '주로',
+                    '100%': '대부분',
+                    '모든': '많은',
+                    '항상': '보통'
+                };
+                return replacements[match] || match;
+            });
+            if (conservative !== statement) {
+                corrections.push({
+                    type: '보수적 교정',
+                    description: '과장된 표현을 완화하여 더 정확하게 표현',
+                    statement: conservative,
+                    icon: 'fas fa-shield-alt',
+                    color: 'primary'
+                });
+            }
+            
+            // 2. 과학적 교정 (구체적 근거 추가)
+            if (lowerStatement.includes('지구') || lowerStatement.includes('물') || lowerStatement.includes('과학')) {
+                let scientific = statement;
+                if (lowerStatement.includes('지구') && lowerStatement.includes('평평')) {
+                    scientific = '지구는 구형이며, 이는 과학적으로 입증된 사실입니다.';
+                } else if (lowerStatement.includes('물') && lowerStatement.includes('끓')) {
+                    scientific = '물은 표준 대기압에서 100°C에서 끓습니다.';
+                } else {
+                    scientific = statement + ' (과학적 근거가 필요합니다)';
+                }
+                corrections.push({
+                    type: '과학적 교정',
+                    description: '과학적 근거를 바탕으로 정확한 사실 제시',
+                    statement: scientific,
+                    icon: 'fas fa-flask',
+                    color: 'info'
+                });
+            }
+            
+            // 3. 논리적 교정 (모순 제거)
+            if (lowerStatement.includes('모든') && lowerStatement.includes('일부')) {
+                const logical = statement.replace(/모든 사람이 일부 사람과 다르다/g, '사람들은 서로 다른 특성을 가지고 있다');
+                corrections.push({
+                    type: '논리적 교정',
+                    description: '논리적 모순을 제거하고 명확한 표현 사용',
+                    statement: logical,
+                    icon: 'fas fa-brain',
+                    color: 'warning'
+                });
+            }
+            
+            // 4. 간결한 교정 (불필요한 표현 제거)
+            if (lowerStatement.includes('정말로') || lowerStatement.includes('완전히') || lowerStatement.includes('절대적으로')) {
+                let concise = statement;
+                concise = concise.replace(/정말로|완전히|절대적으로|모든 것이|100%/g, '').trim();
+                concise = concise.replace(/\s+/g, ' '); // 연속 공백 제거
+                if (concise !== statement) {
+                    corrections.push({
+                        type: '간결한 교정',
+                        description: '불필요한 강조 표현을 제거하여 간결하게 표현',
+                        statement: concise,
+                        icon: 'fas fa-compress-alt',
+                        color: 'success'
+                    });
+                }
+            }
+            
+            // 5. 균형잡힌 교정 (중립적 표현)
+            if (lowerStatement.includes('완전히') || lowerStatement.includes('절대적으로')) {
+                let balanced = statement;
+                balanced = balanced.replace(/완전히|절대적으로/g, '상당히');
+                balanced = balanced.replace(/모든/g, '대부분의');
+                if (balanced !== statement) {
+                    corrections.push({
+                        type: '균형잡힌 교정',
+                        description: '극단적 표현을 중립적이고 균형잡힌 표현으로 변경',
+                        statement: balanced,
+                        icon: 'fas fa-balance-scale',
+                        color: 'secondary'
+                    });
+                }
+            }
+            
+            // 6. 구체적 교정 (구체적 수치나 근거 추가)
+            if (lowerStatement.includes('많은') || lowerStatement.includes('대부분')) {
+                let specific = statement;
+                if (lowerStatement.includes('많은 사람')) {
+                    specific = statement.replace(/많은 사람/g, '대부분의 사람 (약 80-90%)');
+                } else if (lowerStatement.includes('대부분')) {
+                    specific = statement.replace(/대부분/g, '상당수');
+                }
+                if (specific !== statement) {
+                    corrections.push({
+                        type: '구체적 교정',
+                        description: '모호한 표현을 구체적인 수치나 근거로 대체',
+                        statement: specific,
+                        icon: 'fas fa-chart-bar',
+                        color: 'dark'
+                    });
+                }
+            }
+            
+            // 교정이 없으면 기본 교정 추가
+            if (corrections.length === 0) {
+                corrections.push({
+                    type: '기본 교정',
+                    description: '문장을 더 정확하고 신뢰할 수 있게 수정',
+                    statement: statement.replace(/완전히|절대적으로|100%/g, '상당히'),
+                    icon: 'fas fa-edit',
+                    color: 'primary'
+                });
+            }
+            
+            return corrections.slice(0, 4); // 최대 4개까지만 표시
+        }
+        
         // 데모용 결과 생성 함수 (전역 함수로 정의)
         window.generateDemoResult = function(statement, mode) {
             // 문장 내용에 따라 더 현실적인 결과 생성
@@ -617,7 +740,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 correction_enhancement: {
                     enhanced_correction_applied: truthPercentage < 70,
-                    corrected_statement: truthPercentage < 70 ? statement.replace('완전히', '대부분').replace('모든', '많은') : null
+                    corrected_statements: truthPercentage < 70 ? generateMultipleCorrections(statement) : []
                 }
             };
         }
@@ -792,16 +915,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             
-            if (analysis.correction_enhancement.enhanced_correction_applied && analysis.correction_enhancement.corrected_statement) {
+            if (analysis.correction_enhancement.enhanced_correction_applied && analysis.correction_enhancement.corrected_statements && analysis.correction_enhancement.corrected_statements.length > 0) {
                 resultHtml += `
                     <div class="mb-3">
-                        <h6>원본 문장:</h6>
-                        <div class="bg-danger bg-opacity-10 p-3 rounded mb-2">
+                        <h6><i class="fas fa-edit me-2"></i>원본 문장:</h6>
+                        <div class="bg-danger bg-opacity-10 p-3 rounded mb-3">
                             <em class="text-danger">${analysis.statement}</em>
                         </div>
-                        <h6>교정된 문장:</h6>
-                        <div class="bg-success bg-opacity-10 p-3 rounded">
-                            <em class="text-success">${analysis.correction_enhancement.corrected_statement}</em>
+                        <h6><i class="fas fa-magic me-2"></i>추천 교정 문장들:</h6>
+                        <div class="row">
+                `;
+                
+                analysis.correction_enhancement.corrected_statements.forEach((correction, index) => {
+                    resultHtml += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-${correction.color}">
+                                <div class="card-header bg-${correction.color} bg-opacity-10">
+                                    <div class="d-flex align-items-center">
+                                        <i class="${correction.icon} text-${correction.color} me-2"></i>
+                                        <strong class="text-${correction.color}">${correction.type}</strong>
+                                    </div>
+                                    <small class="text-muted">${correction.description}</small>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-0 text-${correction.color}">${correction.statement}</p>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <button class="btn btn-sm btn-outline-${correction.color}" onclick="copyToClipboard('${correction.statement.replace(/'/g, "\\'")}')">
+                                        <i class="fas fa-copy me-1"></i>복사
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                resultHtml += `
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>팁:</strong> 각 교정 문장을 클릭하여 복사할 수 있습니다. 상황에 맞는 가장 적절한 교정 문장을 선택하세요.
                         </div>
                     </div>
                 `;
@@ -1464,16 +1617,122 @@ document.addEventListener('DOMContentLoaded', function() {
         dashboardContent.innerHTML = html;
     }
     
-    // 대시보드 오류 표시
-    function displayDashboardError(errorMessage) {
-        const dashboardContent = document.getElementById('dashboardContent');
-        dashboardContent.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                대시보드 데이터를 불러오는 중 오류가 발생했습니다: ${errorMessage}
-            </div>
-        `;
-    }
+        // 대시보드 오류 표시
+        function displayDashboardError(errorMessage) {
+            const dashboardContent = document.getElementById('dashboardContent');
+            dashboardContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    대시보드 데이터를 불러오는 중 오류가 발생했습니다: ${errorMessage}
+                </div>
+            `;
+        }
+        
+        // 클립보드 복사 기능 (전역 함수로 정의)
+        window.copyToClipboard = function(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                // 최신 브라우저의 Clipboard API 사용
+                navigator.clipboard.writeText(text).then(function() {
+                    showCopySuccess();
+                }).catch(function(err) {
+                    console.error('클립보드 복사 실패:', err);
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                // 구형 브라우저를 위한 fallback
+                fallbackCopyTextToClipboard(text);
+            }
+        };
+        
+        // 구형 브라우저용 클립보드 복사
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccess();
+                } else {
+                    showCopyError();
+                }
+            } catch (err) {
+                console.error('클립보드 복사 실패:', err);
+                showCopyError();
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 복사 성공 알림
+        function showCopySuccess() {
+            // 기존 토스트 제거
+            const existingToast = document.querySelector('.copy-toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = 'copy-toast position-fixed top-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-success text-white">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong class="me-auto">복사 완료!</strong>
+                        <button type="button" class="btn-close btn-close-white" onclick="this.closest('.copy-toast').remove()"></button>
+                    </div>
+                    <div class="toast-body">
+                        교정 문장이 클립보드에 복사되었습니다.
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // 3초 후 자동 제거
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+        
+        // 복사 실패 알림
+        function showCopyError() {
+            const toast = document.createElement('div');
+            toast.className = 'copy-toast position-fixed top-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-danger text-white">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong class="me-auto">복사 실패</strong>
+                        <button type="button" class="btn-close btn-close-white" onclick="this.closest('.copy-toast').remove()"></button>
+                    </div>
+                    <div class="toast-body">
+                        클립보드 복사에 실패했습니다. 수동으로 복사해주세요.
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // 5초 후 자동 제거
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
 </script>
 </body>
 </html>
