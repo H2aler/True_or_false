@@ -926,9 +926,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     confidence = 95;
                     needsCorrection = true;
                 } else {
-                    truthPercentage = Math.random() * 10 + 85; // 85-95% (일반적으로 맞음)
-                    confidence = Math.random() * 10 + 85;
-                    needsCorrection = false;
+                truthPercentage = Math.random() * 10 + 85; // 85-95% (일반적으로 맞음)
+                confidence = Math.random() * 10 + 85;
+                needsCorrection = false;
                 }
             } else if (lowerStatement.includes('모든') && lowerStatement.includes('다르다')) {
                 truthPercentage = Math.random() * 15 + 70; // 70-85% (논리적 모순)
@@ -1942,16 +1942,16 @@ document.addEventListener('DOMContentLoaded', function() {
         dashboardContent.innerHTML = html;
     }
     
-        // 대시보드 오류 표시
-        function displayDashboardError(errorMessage) {
-            const dashboardContent = document.getElementById('dashboardContent');
-            dashboardContent.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    대시보드 데이터를 불러오는 중 오류가 발생했습니다: ${errorMessage}
-                </div>
-            `;
-        }
+    // 대시보드 오류 표시
+    function displayDashboardError(errorMessage) {
+        const dashboardContent = document.getElementById('dashboardContent');
+        dashboardContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                대시보드 데이터를 불러오는 중 오류가 발생했습니다: ${errorMessage}
+            </div>
+        `;
+    }
         
         // 클립보드 복사 기능 (전역 함수로 정의)
         window.copyToClipboard = function(text) {
