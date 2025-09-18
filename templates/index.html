@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}AI 진실성 탐지기 - 홈{% endblock %}
-<!-- Updated: 2025-01-09 -->
+{% block title %}AI 진실성 탐지기 (Enterprise Edition) - 홈{% endblock %}
+<!-- Updated: 2025-09-19 - Enterprise Edition -->
 
 {% block content %}
 <div class="row">
@@ -10,10 +10,20 @@
             <h1 class="display-4 fw-bold text-primary mb-3">
                 <i class="fas fa-shield-alt me-3"></i>
                 AI 진실성 탐지기
+                <span class="badge bg-warning text-dark ms-2 fs-6">Enterprise Edition</span>
             </h1>
             <p class="lead text-muted">
-                AI가 거짓말을 하는지 측정하고, 1% 이상 거짓말을 감지하면 자동으로 교정합니다
+                ChatGPT/Claude 수준의 신뢰성과 품질을 제공하는 엔터프라이즈급 AI 진실성 탐지 시스템
             </p>
+            <div class="row justify-content-center mt-4">
+                <div class="col-md-8">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>완벽한 일관성 보장:</strong> 동일한 문장은 항상 같은 결과를 반환합니다. 
+                        <strong>8개 소스 신뢰도 평가</strong>와 <strong>4단계 고급 검증</strong>으로 최고 품질을 제공합니다.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -104,6 +114,26 @@
                         <button class="btn btn-outline-danger w-100 analysis-mode-btn" data-mode="consistency-test">
                             <i class="fas fa-vial me-2"></i>일관성 테스트
                             <small class="d-block">점수 변동성 검증</small>
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-primary w-100 analysis-mode-btn" data-mode="batch">
+                            <i class="fas fa-layer-group me-2"></i>배치 분석
+                            <small class="d-block">여러 문장 동시 처리</small>
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-info w-100 analysis-mode-btn" data-mode="validation">
+                            <i class="fas fa-shield-alt me-2"></i>입력 검증
+                            <small class="d-block">4단계 고급 검증</small>
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-success w-100 analysis-mode-btn" data-mode="confidence">
+                            <i class="fas fa-chart-line me-2"></i>신뢰도 평가
+                            <small class="d-block">8개 소스 평가</small>
                         </button>
                     </div>
                 </div>
@@ -304,6 +334,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.add('btn-warning');
             } else if (mode === 'consistency-test') {
                 this.classList.add('btn-danger');
+            } else if (mode === 'batch') {
+                this.classList.add('btn-primary');
+            } else if (mode === 'validation') {
+                this.classList.add('btn-info');
+            } else if (mode === 'confidence') {
+                this.classList.add('btn-success');
             }
             
             // 분석 모드 업데이트
@@ -331,7 +367,10 @@ document.addEventListener('DOMContentLoaded', function() {
             'enhanced-research': '실시간 검색 과정을 표시하며 인터넷에서 정보를 검색하고 답변합니다.',
             'verify': '주어진 문장의 사실성을 검증하고 증거를 제시합니다.',
             'consistent': '동일한 문장에 대해 항상 같은 진실성 점수를 반환하는 일관성 있는 분석을 수행합니다.',
-            'consistency-test': '동일한 문장을 여러 번 분석하여 점수 변동성을 테스트하고 일관성을 검증합니다.'
+            'consistency-test': '동일한 문장을 여러 번 분석하여 점수 변동성을 테스트하고 일관성을 검증합니다.',
+            'batch': '여러 문장을 동시에 분석하여 효율적으로 처리합니다. (최대 10개 문장)',
+            'validation': '4단계 고급 검증 시스템으로 입력의 유효성과 품질을 검사합니다.',
+            'confidence': '8개 소스 기반 신뢰도 평가로 분석 결과의 신뢰성을 종합적으로 평가합니다.'
         };
         
         const descriptionElement = document.querySelector('.lead.text-muted');
@@ -354,7 +393,10 @@ document.addEventListener('DOMContentLoaded', function() {
             'enhanced-research': '향상된 웹 연구',
             'verify': '사실 검증',
             'consistent': '일관성 분석',
-            'consistency-test': '일관성 테스트'
+            'consistency-test': '일관성 테스트',
+            'batch': '배치 분석',
+            'validation': '입력 검증',
+            'confidence': '신뢰도 평가'
         };
         
         // 기존 피드백 제거
@@ -481,6 +523,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     statement: statement,
                     test_count: 5
                 };
+            } else if (currentAnalysisMode === 'batch') {
+                // 배치 분석 모드 - 문장을 줄바꿈으로 분리
+                const statements = statement.split('\n').filter(s => s.trim());
+                if (statements.length === 0) {
+                    alert('분석할 문장을 입력해주세요.');
+                    return;
+                }
+                if (statements.length > 10) {
+                    alert('한 번에 최대 10개 문장까지 분석할 수 있습니다.');
+                    return;
+                }
+                endpoint = '/api/batch-analyze';
+                requestBody = {
+                    statements: statements,
+                    context: context
+                };
+            } else if (currentAnalysisMode === 'validation') {
+                // 입력 검증 모드
+                endpoint = '/api/validate';
+                requestBody = {
+                    statement: statement,
+                    context: context,
+                    validation_level: 'enterprise'
+                };
+            } else if (currentAnalysisMode === 'confidence') {
+                // 신뢰도 평가 모드
+                endpoint = '/api/confidence';
+                requestBody = {
+                    statement: statement,
+                    context: context,
+                    analysis_result: {}
+                };
             } else {
                 // 기존 모드들
                 endpoint = currentAnalysisMode === 'all' ? '/analyze' : `/analyze/${currentAnalysisMode}`;
@@ -509,6 +583,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     displayConsistentResult(data.analysis);
                 } else if (currentAnalysisMode === 'consistency-test') {
                     displayConsistencyTestResult(data);
+                } else if (currentAnalysisMode === 'batch') {
+                    displayBatchResult(data);
+                } else if (currentAnalysisMode === 'validation') {
+                    displayValidationResult(data);
+                } else if (currentAnalysisMode === 'confidence') {
+                    displayConfidenceResult(data);
                 } else {
                     displayAnalysisResult(data.analysis);
                 }
@@ -1629,6 +1709,309 @@ document.addEventListener('DOMContentLoaded', function() {
                             <small class="text-muted">
                                 <i class="fas fa-info-circle me-1"></i>
                                 검증 시간: ${new Date(result.timestamp).toLocaleString('ko-KR')}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.innerHTML = html;
+    }
+    
+    // 배치 분석 결과 표시 함수
+    function displayBatchResult(data) {
+        const resultDiv = document.getElementById('analysisResult');
+        
+        let html = `
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>배치 분석 결과</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary">${data.total_processed}</h5>
+                                    <p class="card-text">총 처리</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5 class="card-title text-success">${data.successful}</h5>
+                                    <p class="card-text">성공</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5 class="card-title text-danger">${data.failed}</h5>
+                                    <p class="card-text">실패</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5 class="card-title text-info">${((data.successful / data.total_processed) * 100).toFixed(1)}%</h5>
+                                    <p class="card-text">성공률</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion" id="batchResults">
+                        ${data.batch_results.map((result, index) => `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading${index}">
+                                    <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#collapse${index}">
+                                        <span class="badge bg-${result.error ? 'danger' : (result.final_analysis.truth_percentage >= 0.8 ? 'success' : result.final_analysis.truth_percentage >= 0.6 ? 'warning' : 'danger')} me-2">
+                                            ${result.error ? '오류' : (result.final_analysis.truth_percentage * 100).toFixed(1) + '%'}
+                                        </span>
+                                        문장 ${index + 1}: ${result.statement.substring(0, 50)}${result.statement.length > 50 ? '...' : ''}
+                                    </button>
+                                </h2>
+                                <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" 
+                                     data-bs-parent="#batchResults">
+                                    <div class="accordion-body">
+                                        ${result.error ? `
+                                            <div class="alert alert-danger">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                <strong>오류:</strong> ${result.error}
+                                            </div>
+                                        ` : `
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>진실성 점수</h6>
+                                                    <div class="progress mb-2" style="height: 25px;">
+                                                        <div class="progress-bar ${result.final_analysis.truth_percentage >= 0.8 ? 'bg-success' : result.final_analysis.truth_percentage >= 0.6 ? 'bg-warning' : 'bg-danger'}" 
+                                                             style="width: ${result.final_analysis.truth_percentage * 100}%">
+                                                            ${(result.final_analysis.truth_percentage * 100).toFixed(1)}%
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>신뢰도</h6>
+                                                    <div class="progress mb-2" style="height: 25px;">
+                                                        <div class="progress-bar ${result.final_analysis.confidence >= 0.8 ? 'bg-success' : result.final_analysis.confidence >= 0.6 ? 'bg-warning' : 'bg-danger'}" 
+                                                             style="width: ${result.final_analysis.confidence * 100}%">
+                                                            ${(result.final_analysis.confidence * 100).toFixed(1)}%
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <h6>교정 필요 여부</h6>
+                                                <span class="badge bg-${result.final_analysis.needs_correction ? 'warning' : 'success'}">
+                                                    ${result.final_analysis.needs_correction ? '교정 필요' : '정상'}
+                                                </span>
+                                            </div>
+                                        `}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.innerHTML = html;
+    }
+    
+    // 입력 검증 결과 표시 함수
+    function displayValidationResult(data) {
+        const resultDiv = document.getElementById('analysisResult');
+        const validation = data.validation_result;
+        
+        let html = `
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>입력 검증 결과</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-quote-left me-2"></i>검증 대상 문장</h6>
+                            <p class="border p-3 bg-light rounded">${validation.statement || '문장이 입력되지 않았습니다.'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check-circle me-2"></i>검증 결과</h6>
+                            <div class="text-center">
+                                <i class="fas fa-${validation.is_valid ? 'check-circle text-success' : 'times-circle text-danger'} fa-3x mb-3"></i>
+                                <h4 class="${validation.is_valid ? 'text-success' : 'text-danger'}">
+                                    ${validation.is_valid ? '검증 통과' : '검증 실패'}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-tachometer-alt me-2"></i>신뢰도</h6>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar ${validation.confidence >= 0.8 ? 'bg-success' : validation.confidence >= 0.6 ? 'bg-warning' : 'bg-danger'}" 
+                                     style="width: ${validation.confidence * 100}%">
+                                    ${(validation.confidence * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-cog me-2"></i>검증 수준</h6>
+                            <span class="badge bg-info fs-6">${validation.validation_level}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock me-2"></i>처리 시간</h6>
+                            <span class="text-muted">${validation.processing_time.toFixed(3)}초</span>
+                        </div>
+                    </div>
+                    
+                    ${validation.errors && validation.errors.length > 0 ? `
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>오류</h6>
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        ${validation.errors.map(error => `<li>${error}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${validation.warnings && validation.warnings.length > 0 ? `
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>경고</h6>
+                                <div class="alert alert-warning">
+                                    <ul class="mb-0">
+                                        ${validation.warnings.map(warning => `<li>${warning}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${validation.suggestions && validation.suggestions.length > 0 ? `
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-lightbulb me-2"></i>개선 제안</h6>
+                                <div class="alert alert-info">
+                                    <ul class="mb-0">
+                                        ${validation.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                검증 시간: ${new Date(validation.timestamp).toLocaleString('ko-KR')}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.innerHTML = html;
+    }
+    
+    // 신뢰도 평가 결과 표시 함수
+    function displayConfidenceResult(data) {
+        const resultDiv = document.getElementById('analysisResult');
+        const confidence = data.confidence_evaluation;
+        
+        let html = `
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>신뢰도 평가 결과</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-quote-left me-2"></i>평가 대상 문장</h6>
+                            <p class="border p-3 bg-light rounded">${confidence.statement || '문장이 입력되지 않았습니다.'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-percentage me-2"></i>전체 신뢰도</h6>
+                            <div class="text-center">
+                                <div class="display-4 text-${confidence.overall_confidence >= 0.8 ? 'success' : confidence.overall_confidence >= 0.6 ? 'warning' : 'danger'}">
+                                    ${(confidence.overall_confidence * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-star me-2"></i>품질 수준</h6>
+                            <div class="text-center">
+                                <span class="badge bg-${confidence.quality_level === 'PERFECT' ? 'success' : confidence.quality_level === 'EXCELLENT' ? 'primary' : confidence.quality_level === 'GOOD' ? 'info' : confidence.quality_level === 'FAIR' ? 'warning' : 'danger'} fs-4">
+                                    ${confidence.quality_level}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-chart-bar me-2"></i>8개 소스 신뢰도 평가</h6>
+                            <div class="row">
+                                ${Object.entries(confidence.source_scores).map(([source, score]) => `
+                                    <div class="col-md-6 mb-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>${source}</span>
+                                            <div class="progress" style="width: 60%; height: 20px;">
+                                                <div class="progress-bar ${score >= 0.8 ? 'bg-success' : score >= 0.6 ? 'bg-warning' : 'bg-danger'}" 
+                                                     style="width: ${score * 100}%">
+                                                    ${(score * 100).toFixed(1)}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6><i class="fas fa-brain me-2"></i>평가 설명</h6>
+                            <p class="border p-3 bg-light rounded">${confidence.explanation}</p>
+                        </div>
+                    </div>
+                    
+                    ${confidence.recommendations && confidence.recommendations.length > 0 ? `
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6><i class="fas fa-lightbulb me-2"></i>개선 권장사항</h6>
+                                <ul class="list-group">
+                                    ${confidence.recommendations.map(rec => `
+                                        <li class="list-group-item">${rec}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                평가 시간: ${new Date(confidence.timestamp).toLocaleString('ko-KR')} | 
+                                처리 시간: ${confidence.processing_time.toFixed(3)}초
                             </small>
                         </div>
                     </div>
