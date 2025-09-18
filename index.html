@@ -343,8 +343,11 @@
                                 <a href="https://github.com/H2aler/True_or_false" class="btn btn-outline-primary me-2" target="_blank">
                                     <i class="fab fa-github me-2"></i>GitHub 저장소
                                 </a>
-                                <button class="btn btn-outline-info" onclick="showDemo()">
+                                <button class="btn btn-outline-info me-2" onclick="showDemo()">
                                     <i class="fas fa-play me-2"></i>데모 보기
+                                </button>
+                                <button class="btn btn-outline-success" onclick="showBatchAnalysis()">
+                                    <i class="fas fa-list me-2"></i>배치 분석
                                 </button>
                             </div>
                         </div>
@@ -404,6 +407,110 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             originalConsoleError.apply(console, args);
+        };
+        
+        // API 설정
+        const API_CONFIG = {
+            baseUrl: 'http://localhost:5000/api',
+            timeout: 10000,
+            retryAttempts: 3
+        };
+        
+        // API 호출 함수
+        window.apiCall = async function(endpoint, method = 'GET', data = null) {
+            const url = `${API_CONFIG.baseUrl}${endpoint}`;
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                timeout: API_CONFIG.timeout
+            };
+            
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.warn(`API 호출 실패 (${endpoint}):`, error.message);
+                throw error;
+            }
+        };
+        
+        // 파이썬 백엔드 분석 함수
+        window.analyzeWithPython = async function(statement, context = null) {
+            try {
+                const result = await apiCall('/analyze', 'POST', {
+                    statement: statement,
+                    context: context
+                });
+                return result;
+            } catch (error) {
+                console.warn('파이썬 백엔드 분석 실패, 로컬 분석으로 폴백:', error.message);
+                return null;
+            }
+        };
+        
+        // 파이썬 백엔드 일괄 분석 함수
+        window.batchAnalyzeWithPython = async function(statements, context = null) {
+            try {
+                const result = await apiCall('/batch-analyze', 'POST', {
+                    statements: statements,
+                    context: context
+                });
+                return result;
+            } catch (error) {
+                console.warn('파이썬 백엔드 일괄 분석 실패, 로컬 분석으로 폴백:', error.message);
+                return null;
+            }
+        };
+        
+        // 파이썬 백엔드 통계 조회 함수
+        window.getPythonStatistics = async function() {
+            try {
+                const result = await apiCall('/statistics', 'GET');
+                return result;
+            } catch (error) {
+                console.warn('파이썬 백엔드 통계 조회 실패:', error.message);
+                return null;
+            }
+        };
+        
+        // 파이썬 백엔드 상태 확인 함수
+        window.checkPythonBackend = async function() {
+            try {
+                const result = await apiCall('/health', 'GET');
+                return result;
+            } catch (error) {
+                return null;
+            }
+        };
+        
+        // 하이브리드 분석 함수 (파이썬 + 로컬)
+        window.hybridAnalyze = async function(statement, context = null) {
+            // 파이썬 백엔드 시도
+            const pythonResult = await analyzeWithPython(statement, context);
+            if (pythonResult) {
+                return {
+                    ...pythonResult,
+                    source: 'python',
+                    enhanced: true
+                };
+            }
+            
+            // 로컬 분석으로 폴백
+            const localResult = generateDemoResult(statement, context);
+            return {
+                ...localResult,
+                source: 'local',
+                enhanced: false
+            };
         };
         
         // 모달 접근성 관리 함수 (전역 스코프로 이동)
@@ -481,10 +588,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 폼 제출 처리
-        form.addEventListener('submit', function(e) {
+    // 폼 제출 처리 (하이브리드 분석)
+        form.addEventListener('submit', async function(e) {
         e.preventDefault();
-            console.log('폼 제출됨');
+            console.log('폼 제출됨 - 하이브리드 분석 시작');
         
         const statement = document.getElementById('statement').value.trim();
         const context = document.getElementById('context').value.trim();
@@ -498,29 +605,40 @@ document.addEventListener('DOMContentLoaded', function() {
         loading.classList.add('show');
         resultDiv.innerHTML = '';
         
-            // GitHub Pages에서는 데모 모드로 작동
-            console.log('GitHub Pages 모드: 데모 분석 실행');
+        try {
+            // 하이브리드 분석 실행 (파이썬 백엔드 우선, 실패시 로컬 폴백)
+            console.log('하이브리드 분석 시작...');
+            const analysisResult = await hybridAnalyze(statement, context || currentAnalysisMode);
             
-            // 2초 후 데모 결과 표시 (실제 분석 시뮬레이션)
-            setTimeout(function() {
-                try {
-                    const demoResult = generateDemoResult(statement, currentAnalysisMode);
-                    displayAnalysisResult(demoResult);
-                    // 데모 결과를 로컬 스토리지에 저장
-                    saveAnalysisToLocal(demoResult);
-                loadRecentAnalyses();
+            // 분석 결과 표시
+            displayAnalysisResult(analysisResult);
+            
+            // 결과를 로컬 스토리지에 저장
+            saveAnalysisToLocal(analysisResult);
+            
+            // 분석 소스 표시
+            const sourceBadge = analysisResult.source === 'python' ? 
+                '<span class="badge bg-success ms-2"><i class="fas fa-server me-1"></i>Python Backend</span>' :
+                '<span class="badge bg-warning ms-2"><i class="fas fa-desktop me-1"></i>Local Analysis</span>';
+            
+            // 결과에 소스 배지 추가
+            const resultHeader = resultDiv.querySelector('.analysis-header');
+            if (resultHeader) {
+                resultHeader.innerHTML += sourceBadge;
+            }
+            
+            console.log(`분석 완료 - 소스: ${analysisResult.source}, 향상됨: ${analysisResult.enhanced}`);
+            
         } catch (error) {
-                    console.error('분석 오류:', error);
-            resultDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                            분석 중 오류가 발생했습니다: ${error.message}
-                </div>
-            `;
+            console.error('분석 중 오류 발생:', error);
+            // 오류 발생시 로컬 분석으로 폴백
+            const fallbackResult = generateDemoResult(statement, currentAnalysisMode);
+            displayAnalysisResult(fallbackResult);
+            saveAnalysisToLocal(fallbackResult);
         } finally {
             loading.classList.remove('show');
+            loadRecentAnalyses();
         }
-            }, 2000);
         });
         
         // 여러 교정 문장 생성 함수
@@ -1441,15 +1559,27 @@ document.addEventListener('DOMContentLoaded', function() {
         loadDashboardData();
     }
     
-    // 대시보드 데이터 로드
-    function loadDashboardData() {
+    // 대시보드 데이터 로드 (하이브리드)
+    async function loadDashboardData() {
+        try {
+            // 파이썬 백엔드 통계 시도
+            const pythonStats = await getPythonStatistics();
+            if (pythonStats && pythonStats.statistics) {
+                console.log('파이썬 백엔드 통계 사용');
+                displayDashboard(pythonStats.statistics, 'python');
+                return;
+            }
+        } catch (error) {
+            console.warn('파이썬 백엔드 통계 조회 실패, 로컬 데이터로 폴백:', error.message);
+        }
+        
         // 로컬 스토리지에서 대시보드 데이터 가져오기
         const storedAnalyses = localStorage.getItem('recentAnalyses');
         if (storedAnalyses) {
             try {
                 const analyses = JSON.parse(storedAnalyses);
                 const dashboardData = generateDashboardData(analyses);
-                displayDashboard(dashboardData);
+                displayDashboard(dashboardData, 'local');
                 return;
             } catch (e) {
                 console.error('로컬 스토리지 파싱 오류:', e);
@@ -1552,10 +1682,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 대시보드 표시
-    function displayDashboard(data) {
+    function displayDashboard(data, source = 'local') {
         const dashboardContent = document.getElementById('dashboardContent');
         
+        // 소스 배지 생성
+        const sourceBadge = source === 'python' ? 
+            '<span class="badge bg-success mb-2"><i class="fas fa-server me-1"></i>Python Backend</span>' :
+            '<span class="badge bg-warning mb-2"><i class="fas fa-desktop me-1"></i>Local Data</span>';
+        
         let html = `
+            <div class="text-center mb-3">
+                ${sourceBadge}
+            </div>
             <div class="row mb-4">
                 <div class="col-md-3">
                     <div class="card text-center">
@@ -1810,6 +1948,203 @@ document.addEventListener('DOMContentLoaded', function() {
                     toast.remove();
                 }
             }, 5000);
+        }
+        
+        // 배치 분석 모달 표시 함수
+        window.showBatchAnalysis = function() {
+            const modalHtml = `
+                <div class="modal fade" id="batchModal" tabindex="-1" aria-labelledby="batchModalLabel" aria-hidden="true" role="dialog">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="batchModalLabel">
+                                    <i class="fas fa-list me-2"></i>배치 분석
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-edit me-2"></i>문장 입력</h6>
+                                        <textarea id="batchStatements" class="form-control" rows="10" 
+                                                  placeholder="분석할 문장들을 한 줄에 하나씩 입력하세요:&#10;지구는 평평하다&#10;물은 100도에서 끓는다&#10;1 + 1 = 2이다"></textarea>
+                                        <div class="mt-2">
+                                            <small class="text-muted">최대 10개 문장까지 분석 가능합니다.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-chart-bar me-2"></i>분석 결과</h6>
+                                        <div id="batchResults" class="border rounded p-3" style="height: 300px; overflow-y: auto;">
+                                            <div class="text-center text-muted">
+                                                <i class="fas fa-arrow-left fa-2x mb-2"></i>
+                                                <p>왼쪽에 문장을 입력하고 분석 버튼을 클릭하세요.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                                <button type="button" class="btn btn-primary" onclick="runBatchAnalysis()">
+                                    <i class="fas fa-play me-2"></i>분석 시작
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 기존 모달 제거
+            const existingModal = document.getElementById('batchModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 새 모달 추가
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 모달 접근성 관리 (모달 표시 전에 설정)
+            const modalElement = document.getElementById('batchModal');
+            manageModalAccessibility(modalElement);
+            
+            // 모달 표시
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        };
+        
+        // 배치 분석 실행 함수
+        window.runBatchAnalysis = async function() {
+            const statementsText = document.getElementById('batchStatements').value.trim();
+            const resultsDiv = document.getElementById('batchResults');
+            
+            if (!statementsText) {
+                showToast('문장을 입력해주세요.', 'warning');
+                return;
+            }
+            
+            // 문장들을 배열로 분리
+            const statements = statementsText.split('\n')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            
+            if (statements.length === 0) {
+                showToast('유효한 문장을 입력해주세요.', 'warning');
+                return;
+            }
+            
+            if (statements.length > 10) {
+                showToast('최대 10개 문장까지만 분석할 수 있습니다.', 'warning');
+                return;
+            }
+            
+            // 로딩 표시
+            resultsDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">분석 중...</span>
+                    </div>
+                    <p class="mt-2">${statements.length}개 문장 분석 중...</p>
+                </div>
+            `;
+            
+            try {
+                // 하이브리드 배치 분석 실행
+                const batchResult = await batchAnalyzeWithPython(statements);
+                
+                if (batchResult && batchResult.results) {
+                    // 파이썬 백엔드 결과 표시
+                    displayBatchResults(batchResult.results, 'python');
+                } else {
+                    // 로컬 분석으로 폴백
+                    const localResults = [];
+                    for (const statement of statements) {
+                        const result = generateDemoResult(statement);
+                        localResults.push({
+                            statement: statement,
+                            truth_percentage: result.final_analysis.truth_percentage,
+                            needs_correction: result.final_analysis.needs_correction,
+                            detected_issues: result.final_analysis.detected_issues,
+                            correction_suggestions: result.correction_enhancement.corrected_statements
+                        });
+                    }
+                    displayBatchResults(localResults, 'local');
+                }
+                
+            } catch (error) {
+                console.error('배치 분석 오류:', error);
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        분석 중 오류가 발생했습니다: ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // 배치 분석 결과 표시 함수
+        function displayBatchResults(results, source) {
+            const resultsDiv = document.getElementById('batchResults');
+            const sourceBadge = source === 'python' ? 
+                '<span class="badge bg-success mb-2"><i class="fas fa-server me-1"></i>Python Backend</span>' :
+                '<span class="badge bg-warning mb-2"><i class="fas fa-desktop me-1"></i>Local Analysis</span>';
+            
+            let html = `
+                <div class="text-center mb-3">
+                    ${sourceBadge}
+                </div>
+                <div class="accordion" id="batchResultsAccordion">
+            `;
+            
+            results.forEach((result, index) => {
+                const truthPercentage = (result.truth_percentage * 100).toFixed(1);
+                const statusClass = result.needs_correction ? 'text-warning' : 'text-success';
+                const statusIcon = result.needs_correction ? 'fa-exclamation-triangle' : 'fa-check-circle';
+                
+                html += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading${index}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}">
+                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                    <span class="text-truncate me-2">${result.statement}</span>
+                                    <div>
+                                        <span class="badge bg-${truthPercentage >= 80 ? 'success' : truthPercentage >= 50 ? 'warning' : 'danger'} me-2">
+                                            ${truthPercentage}%
+                                        </span>
+                                        <i class="fas ${statusIcon} ${statusClass}"></i>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse${index}" class="accordion-collapse collapse" 
+                             aria-labelledby="heading${index}" data-bs-parent="#batchResultsAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>감지된 문제</h6>
+                                        ${result.detected_issues && result.detected_issues.length > 0 ? 
+                                            '<ul class="list-unstyled">' + result.detected_issues.map(issue => `<li><i class="fas fa-exclamation-circle text-warning me-2"></i>${issue}</li>`).join('') + '</ul>' :
+                                            '<p class="text-success"><i class="fas fa-check-circle me-2"></i>문제 없음</p>'
+                                        }
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>교정 제안</h6>
+                                        ${result.correction_suggestions && result.correction_suggestions.length > 0 ? 
+                                            '<ul class="list-unstyled">' + result.correction_suggestions.map(correction => 
+                                                `<li><i class="fas fa-edit text-info me-2"></i>${correction.statement}</li>`
+                                            ).join('') + '</ul>' :
+                                            '<p class="text-muted"><i class="fas fa-info-circle me-2"></i>교정 불필요</p>'
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            resultsDiv.innerHTML = html;
         }
 </script>
 </body>

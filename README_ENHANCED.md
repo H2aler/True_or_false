@@ -36,6 +36,15 @@ pip install -r requirements.txt
 
 ### 2. 실행 모드
 
+#### 🌟 통합 시스템 (권장)
+웹 인터페이스와 파이썬 백엔드를 함께 실행:
+```bash
+python start_integrated_system.py
+```
+- 웹 서버: http://localhost:8080
+- API 서버: http://localhost:5000
+- 자동으로 브라우저가 열립니다
+
 #### CLI 모드 (명령줄 인터페이스)
 ```bash
 python run_enhanced_detector.py cli
@@ -57,6 +66,28 @@ python run_enhanced_detector.py demo
 ```
 
 ## 📖 사용 방법
+
+### 🌟 통합 시스템 사용법 (권장)
+
+#### 1. 시스템 시작
+```bash
+python start_integrated_system.py
+```
+
+#### 2. 웹 인터페이스 사용
+- 브라우저에서 http://localhost:8080 접속
+- 문장 입력 후 분석 버튼 클릭
+- 파이썬 백엔드가 자동으로 연동되어 고급 분석 제공
+
+#### 3. 주요 기능
+- **하이브리드 분석**: 파이썬 백엔드 우선, 실패시 로컬 폴백
+- **배치 분석**: 여러 문장을 한 번에 분석
+- **실시간 통계**: 파이썬 백엔드의 고급 통계 연동
+- **소스 표시**: 분석이 파이썬 백엔드인지 로컬인지 표시
+
+#### 4. 모바일 접속
+- 같은 네트워크의 모바일 기기에서 접속 가능
+- 터미널에 표시된 IP 주소 사용
 
 ### CLI 사용법
 

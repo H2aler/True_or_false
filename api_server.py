@@ -19,7 +19,13 @@ from enhanced_truth_detector import TruthDetector, AnalysisResult
 
 # Flask 앱 초기화
 app = Flask(__name__)
-CORS(app)  # CORS 허용
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["*"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})  # CORS 허용
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
