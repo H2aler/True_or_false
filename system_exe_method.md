@@ -2,7 +2,19 @@
 
 ## 📋 시스템 개요
 
-**AI 진실성 탐지기 (Enterprise Edition)**는 ChatGPT/Claude 수준의 신뢰성과 품질을 제공하는 엔터프라이즈급 AI 진실성 탐지 시스템입니다.
+**AI 진실성 탐지기 (Enterprise Edition v2.0.0)**는 ChatGPT/Claude 수준의 신뢰성과 품질을 제공하는 엔터프라이즈급 AI 진실성 탐지 시스템입니다.
+
+### 🚀 **v2.0.0 Enterprise Edition 신기능**
+- **머신러닝 모델 통합**: BERT, Random Forest, Gradient Boosting, SVM, Logistic Regression
+- **RESTful API 서비스**: 45개 API 엔드포인트 (93.3% 성공률)
+- **실시간 알림 시스템**: SocketIO 기반 실시간 알림
+- **API 문서화**: Swagger/OpenAPI 완전 구현
+- **JWT 인증 시스템**: 보안 강화된 API 인증
+- **Docker 컨테이너화**: 프로덕션 배포 준비 완료
+- **데이터베이스 통합**: PostgreSQL + Redis 캐싱
+- **고급 분석 기능**: 패턴 분석, 예측, 사용자 행동 분석
+- **모니터링 시스템**: Prometheus + Grafana 통합
+- **다국어 지원**: 한국어, 영어, 프랑스어 검색 엔진
 
 ### 🌟 주요 특징
 - **완벽한 일관성**: 동일한 문장은 항상 같은 결과 보장
@@ -61,24 +73,44 @@ python -c "import plotly; print('Plotly 설치 완료')"
 
 ## 🚀 실행 방법
 
-### 1. 기본 실행
+### 1. 🌟 **Enterprise Edition (권장)**
 ```bash
 python app.py
 ```
+- 웹 서버: http://localhost:5000
+- API 문서: http://localhost:5000/api/docs/
+- 45개 API 엔드포인트 제공
+- 실시간 알림 시스템
+- JWT 인증 지원
 
-### 2. 백그라운드 실행 (Linux/macOS)
+### 2. 🐳 **Docker 컨테이너 (프로덕션)**
+```bash
+# 단일 컨테이너
+docker build -t ai-truth-detector .
+docker run -p 5000:5000 ai-truth-detector
+
+# 멀티 서비스 (Docker Compose)
+docker-compose up -d
+```
+- 웹 서버: http://localhost:5000
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+### 3. 백그라운드 실행 (Linux/macOS)
 ```bash
 nohup python app.py > app.log 2>&1 &
 ```
 
-### 3. Windows 서비스로 실행
+### 4. Windows 서비스로 실행
 ```bash
 # 관리자 권한으로 실행
 python -m pip install pywin32
 python -c "import win32serviceutil; win32serviceutil.InstallService('AITruthDetector', 'AI Truth Detector', 'python app.py')"
 ```
 
-### 4. Docker로 실행 (선택사항)
+### 5. Docker로 실행 (선택사항)
 ```dockerfile
 FROM python:3.9-slim
 WORKDIR /app

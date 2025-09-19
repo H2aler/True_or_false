@@ -2,7 +2,19 @@
 
 ## 📋 개요
 
-**AI 진실성 탐지기 (Enterprise Edition)**는 ChatGPT/Claude 수준의 신뢰성과 품질을 제공하는 엔터프라이즈급 AI 진실성 탐지 시스템입니다.
+**AI 진실성 탐지기 (Enterprise Edition v2.0.0)**는 ChatGPT/Claude 수준의 신뢰성과 품질을 제공하는 엔터프라이즈급 AI 진실성 탐지 시스템입니다.
+
+### 🚀 **v2.0.0 Enterprise Edition 신기능**
+- **머신러닝 모델 통합**: BERT, Random Forest, Gradient Boosting, SVM, Logistic Regression
+- **RESTful API 서비스**: 45개 API 엔드포인트 (93.3% 성공률)
+- **실시간 알림 시스템**: SocketIO 기반 실시간 알림
+- **API 문서화**: Swagger/OpenAPI 완전 구현
+- **JWT 인증 시스템**: 보안 강화된 API 인증
+- **Docker 컨테이너화**: 프로덕션 배포 준비 완료
+- **데이터베이스 통합**: PostgreSQL + Redis 캐싱
+- **고급 분석 기능**: 패턴 분석, 예측, 사용자 행동 분석
+- **모니터링 시스템**: Prometheus + Grafana 통합
+- **다국어 지원**: 한국어, 영어, 프랑스어 검색 엔진
 
 ## 🚀 빠른 시작
 

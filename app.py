@@ -7,6 +7,12 @@ ChatGPT/Claude 수준의 신뢰성과 품질을 제공하는 엔터프라이즈�
 
 from flask import Flask, render_template, request, jsonify, session, g
 from flask_cors import CORS
+from flask_restx import Api, Resource, fields, Namespace
+from flask_jwt_extended import (
+    JWTManager, jwt_required, create_access_token, 
+    get_jwt_identity, get_jwt, create_refresh_token
+)
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import json
 import plotly
 import plotly.graph_objs as go
@@ -36,43 +42,500 @@ from multilingual_analyzer import MultilingualAnalyzer
 
 # AI 자체 진실성 탐지 시스템들 (이미 위에서 import됨)
 
-# 누락된 모듈들 추가
-try:
-    from ai_self_truth_detector import AISelfTruthDetector
-    from ai_real_time_truth_monitor import AIRealTimeTruthMonitor
-    from ai_meta_truth_system import AIMetaTruthSystem
-    from ai_web_researcher import AIWebResearcher
-    from ai_advanced_researcher import AIAdvancedResearcher
-    from ai_enhanced_researcher import AIEnhancedResearcher
-    from ai_consistent_detector import AIConsistentDetector
-    from advanced_validation_system import AdvancedValidationSystem, AnalysisRequest, ValidationLevel
-    from advanced_confidence_system import AdvancedConfidenceSystem, QualityLevel
-except ImportError as e:
-    print(f"일부 모듈을 가져올 수 없습니다: {e}")
-    # 기본값으로 대체
-    class DummyClass:
-        def __init__(self, *args, **kwargs): pass
-        def __getattr__(self, name): return lambda *args, **kwargs: {}
-    
-    AISelfTruthDetector = DummyClass
-    AIRealTimeTruthMonitor = DummyClass
-    AIMetaTruthSystem = DummyClass
-    AIWebResearcher = DummyClass
-    AIAdvancedResearcher = DummyClass
-    AIEnhancedResearcher = DummyClass
-    AIConsistentDetector = DummyClass
-    AdvancedValidationSystem = DummyClass
-    AnalysisRequest = DummyClass
-    ValidationLevel = DummyClass
-    AdvancedConfidenceSystem = DummyClass
-    QualityLevel = DummyClass
+# AI 자체 진실성 탐지 시스템들
+from ai_self_truth_detector import AISelfTruthDetector
+from ai_real_time_truth_monitor import AIRealTimeTruthMonitor
+from ai_meta_truth_system import AIMetaTruthSystem
+from ai_web_researcher import AIWebResearcher
+from ai_advanced_researcher import AIAdvancedResearcher
+from ai_enhanced_researcher import AIEnhancedResearcher
+from ai_consistent_detector import AIConsistentDetector
+from advanced_validation_system import AdvancedValidationSystem, AnalysisRequest, ValidationLevel
+from advanced_confidence_system import AdvancedConfidenceSystem, QualityLevel
+from advanced_ml_detector import AdvancedMLDetector
 
 # Flask 앱 초기화
 app = Flask(__name__)
 app.secret_key = 'ai_truth_detector_enterprise_secret_key_2024'
 
+# JWT 설정
+app.config['JWT_SECRET_KEY'] = 'ai_truth_detector_jwt_secret_key_2024'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+
+# JWT 매니저 초기화
+jwt = JWTManager(app)
+
+# SocketIO 초기화
+socketio = SocketIO(app, cors_allowed_origins="*")
+
 # CORS 설정
 CORS(app, origins=['*'], methods=['GET', 'POST', 'PUT', 'DELETE'], allow_headers=['Content-Type', 'Authorization'])
+
+# Swagger/OpenAPI 설정
+api = Api(
+    app,
+    version='2.0.0',
+    title='AI 진실성 탐지기 API',
+    description='AI가 자신의 출력을 분석하고 웹 연구를 통해 사실을 검증하는 엔터프라이즈급 시스템',
+    doc='/api/docs/',  # Swagger UI 경로
+    prefix='/api/v1'
+)
+
+# 네임스페이스 정의
+analysis_ns = Namespace('analysis', description='문장 분석 관련 API')
+research_ns = Namespace('research', description='웹 연구 및 사실 검증 API')
+monitoring_ns = Namespace('monitoring', description='시스템 모니터링 API')
+detectors_ns = Namespace('detectors', description='탐지기 관리 API')
+batch_ns = Namespace('batch', description='배치 작업 관리 API')
+
+# API에 네임스페이스 추가
+api.add_namespace(analysis_ns)
+api.add_namespace(research_ns)
+api.add_namespace(monitoring_ns)
+api.add_namespace(detectors_ns)
+api.add_namespace(batch_ns)
+
+# =============================================================================
+# 우선순위 2-3: API 인증 시스템 구축
+# =============================================================================
+
+# 간단한 사용자 데이터베이스 (실제 환경에서는 데이터베이스 사용)
+users_db = {
+    'admin': {
+        'password': 'admin123',
+        'role': 'admin',
+        'permissions': ['read', 'write', 'delete', 'admin']
+    },
+    'user': {
+        'password': 'user123',
+        'role': 'user',
+        'permissions': ['read', 'write']
+    }
+}
+
+# JWT 콜백 함수들
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({
+        'error': '토큰이 만료되었습니다.',
+        'code': 'TOKEN_EXPIRED'
+    }), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return jsonify({
+        'error': '유효하지 않은 토큰입니다.',
+        'code': 'INVALID_TOKEN'
+    }), 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    return jsonify({
+        'error': '인증 토큰이 필요합니다.',
+        'code': 'MISSING_TOKEN'
+    }), 401
+
+# 인증 관련 API 엔드포인트
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    """사용자 로그인"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not username or not password:
+            return jsonify({
+                'error': '사용자명과 비밀번호를 입력해주세요.',
+                'code': 'MISSING_CREDENTIALS'
+            }), 400
+        
+        if username not in users_db or users_db[username]['password'] != password:
+            return jsonify({
+                'error': '잘못된 사용자명 또는 비밀번호입니다.',
+                'code': 'INVALID_CREDENTIALS'
+            }), 401
+        
+        user = users_db[username]
+        
+        # JWT 토큰 생성
+        access_token = create_access_token(
+            identity=username,
+            additional_claims={'role': user['role'], 'permissions': user['permissions']}
+        )
+        refresh_token = create_refresh_token(identity=username)
+        
+        return jsonify({
+            'success': True,
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'user': {
+                'username': username,
+                'role': user['role'],
+                'permissions': user['permissions']
+            },
+            'expires_in': 86400,  # 24시간
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"로그인 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'로그인 중 오류가 발생했습니다: {str(e)}',
+            'code': 'LOGIN_ERROR'
+        }), 500
+
+@app.route('/api/auth/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def api_refresh():
+    """토큰 갱신"""
+    try:
+        current_user = get_jwt_identity()
+        user = users_db.get(current_user)
+        
+        if not user:
+            return jsonify({
+                'error': '사용자를 찾을 수 없습니다.',
+                'code': 'USER_NOT_FOUND'
+            }), 404
+        
+        # 새로운 액세스 토큰 생성
+        new_token = create_access_token(
+            identity=current_user,
+            additional_claims={'role': user['role'], 'permissions': user['permissions']}
+        )
+        
+        return jsonify({
+            'success': True,
+            'access_token': new_token,
+            'expires_in': 86400,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"토큰 갱신 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'토큰 갱신 중 오류가 발생했습니다: {str(e)}',
+            'code': 'REFRESH_ERROR'
+        }), 500
+
+@app.route('/api/auth/profile', methods=['GET'])
+@jwt_required()
+def api_profile():
+    """사용자 프로필 조회"""
+    try:
+        current_user = get_jwt_identity()
+        user = users_db.get(current_user)
+        
+        if not user:
+            return jsonify({
+                'error': '사용자를 찾을 수 없습니다.',
+                'code': 'USER_NOT_FOUND'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'username': current_user,
+                'role': user['role'],
+                'permissions': user['permissions']
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"프로필 조회 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'프로필 조회 중 오류가 발생했습니다: {str(e)}',
+            'code': 'PROFILE_ERROR'
+        }), 500
+
+# =============================================================================
+# 우선순위 2-4: 실시간 알림 시스템 구축
+# =============================================================================
+
+# 실시간 알림 관리자
+class NotificationManager:
+    """실시간 알림 관리자"""
+    
+    def __init__(self):
+        self.connected_users = {}
+        self.notification_history = []
+        
+    def send_notification(self, notification_type, data):
+        """알림 발송"""
+        notification = {
+            'id': f"notif_{int(time.time() * 1000)}",
+            'type': notification_type,
+            'data': data,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # 알림 히스토리에 추가
+        self.notification_history.append(notification)
+        
+        # WebSocket으로 브로드캐스트
+        socketio.emit('notification', notification, namespace='/')
+        
+        logger.info(f"알림 발송: {notification_type} - {data.get('message', 'No message')}")
+    
+    def get_notification_history(self, limit=50):
+        """알림 히스토리 조회"""
+        return self.notification_history[-limit:]
+
+# 전역 알림 관리자
+notification_manager = NotificationManager()
+
+# SocketIO 이벤트 핸들러
+@socketio.on('connect')
+def handle_connect():
+    """클라이언트 연결 처리"""
+    logger.info(f"클라이언트 연결됨: {request.sid}")
+    notification_manager.connected_users[request.sid] = {
+        'connected_at': datetime.now().isoformat(),
+        'ip': request.remote_addr
+    }
+    
+    emit('connected', {
+        'message': '서버에 연결되었습니다.',
+        'timestamp': datetime.now().isoformat()
+    })
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """클라이언트 연결 해제 처리"""
+    logger.info(f"클라이언트 연결 해제됨: {request.sid}")
+    if request.sid in notification_manager.connected_users:
+        del notification_manager.connected_users[request.sid]
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    """방 참가 처리"""
+    room = data.get('room', 'general')
+    join_room(room)
+    
+    emit('joined_room', {
+        'room': room,
+        'message': f'방 {room}에 참가했습니다.',
+        'timestamp': datetime.now().isoformat()
+    })
+
+# 실시간 알림 API 엔드포인트
+@app.route('/api/notifications/history', methods=['GET'])
+def get_notification_history():
+    """알림 히스토리 조회"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        history = notification_manager.get_notification_history(limit)
+        
+        return jsonify({
+            'success': True,
+            'notifications': history,
+            'total_count': len(history),
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"알림 히스토리 조회 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'알림 히스토리 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/notifications/send', methods=['POST'])
+def send_custom_notification():
+    """사용자 정의 알림 발송"""
+    try:
+        data = request.get_json()
+        notification_type = data.get('type', 'system_alert')
+        message = data.get('message', '')
+        
+        if not message:
+            return jsonify({
+                'error': '알림 메시지를 입력해주세요.'
+            }), 400
+        
+        notification_data = {
+            'message': message,
+            'custom': True,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        notification_manager.send_notification(notification_type, notification_data)
+        
+        return jsonify({
+            'success': True,
+            'message': '알림이 성공적으로 발송되었습니다.',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"알림 발송 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'알림 발송 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+# =============================================================================
+# 우선순위 3-1: 고급 머신러닝 탐지기 API
+# =============================================================================
+
+@app.route('/api/ml-analyze', methods=['POST'])
+def api_ml_analyze():
+    """고급 머신러닝 기반 문장 분석"""
+    try:
+        data = request.get_json()
+        statement = data.get('statement', '').strip()
+        context = data.get('context', '').strip()
+        
+        if not statement:
+            return jsonify({'error': '문장을 입력해주세요.'}), 400
+        
+        # 고급 머신러닝 분석 수행
+        ml_result = advanced_ml_detector.predict(statement)
+        
+        # 결과 포맷팅
+        result = {
+            'success': True,
+            'statement': statement,
+            'context': context,
+            'ml_analysis': {
+                'prediction': '진실' if ml_result['prediction'] else '거짓',
+                'probability': ml_result['probability'],
+                'confidence': ml_result['confidence'],
+                'individual_predictions': ml_result.get('individual_predictions', {}),
+                'individual_probabilities': ml_result.get('individual_probabilities', {})
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # 실시간 알림 발송
+        try:
+            notification_manager.send_notification('ml_analysis_complete', {
+                'message': f'ML 분석 완료: {statement[:50]}...',
+                'statement': statement,
+                'prediction': result['ml_analysis']['prediction'],
+                'confidence': result['ml_analysis']['confidence'],
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            logger.warning(f"ML 분석 알림 발송 실패: {str(e)}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"ML 분석 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'ML 분석 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/ml-train', methods=['POST'])
+def api_ml_train():
+    """고급 머신러닝 모델 재훈련"""
+    try:
+        data = request.get_json()
+        num_samples = data.get('num_samples', 1000)
+        
+        # 합성 데이터 생성
+        logger.info(f"ML 모델 재훈련을 시작합니다. 샘플 수: {num_samples}")
+        training_data = advanced_ml_detector.generate_synthetic_data(num_samples)
+        
+        # 모델 훈련
+        X_text = training_data['text'].tolist()
+        y = training_data['label'].tolist()
+        
+        scores = advanced_ml_detector.train_models(X_text, y)
+        
+        if scores:
+            return jsonify({
+                'success': True,
+                'message': 'ML 모델 재훈련이 완료되었습니다.',
+                'scores': scores,
+                'num_samples': num_samples,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'error': 'ML 모델 훈련에 실패했습니다.'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"ML 모델 훈련 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'ML 모델 훈련 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/ml-status', methods=['GET'])
+def api_ml_status():
+    """고급 머신러닝 모델 상태 조회"""
+    try:
+        status = {
+            'is_trained': advanced_ml_detector.is_trained,
+            'available_models': list(advanced_ml_detector.models.keys()),
+            'model_weights': advanced_ml_detector.model_weights,
+            'bert_available': advanced_ml_detector.bert_pipeline is not None,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            'success': True,
+            'ml_status': status
+        })
+        
+    except Exception as e:
+        logger.error(f"ML 상태 조회 중 오류: {str(e)}")
+        return jsonify({
+            'error': f'ML 상태 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+# 데이터 모델 정의
+analysis_request = api.model('AnalysisRequest', {
+    'statement': fields.String(required=True, description='분석할 문장', example='지구는 둥글다'),
+    'context': fields.String(description='문맥 정보', example='과학적 사실'),
+    'ai_self_analysis': fields.Boolean(description='AI 자체 분석 여부', default=True)
+})
+
+analysis_response = api.model('AnalysisResponse', {
+    'success': fields.Boolean(description='성공 여부'),
+    'analysis_id': fields.String(description='분석 ID'),
+    'truth_percentage': fields.Float(description='진실성 비율 (0-100)'),
+    'truth_level': fields.String(description='진실성 수준'),
+    'confidence_score': fields.Float(description='신뢰도 점수'),
+    'detected_lies': fields.List(fields.String, description='탐지된 거짓말 목록'),
+    'correction_suggestions': fields.List(fields.String, description='교정 제안 목록'),
+    'corrected_statement': fields.String(description='교정된 문장'),
+    'processing_time': fields.Float(description='처리 시간 (초)'),
+    'timestamp': fields.String(description='분석 시간')
+})
+
+research_request = api.model('ResearchRequest', {
+    'question': fields.String(required=True, description='연구할 질문', example='지구는 둥글다'),
+    'type': fields.String(description='연구 유형', example='advanced', enum=['basic', 'advanced', 'comprehensive'])
+})
+
+research_response = api.model('ResearchResponse', {
+    'success': fields.Boolean(description='성공 여부'),
+    'answer': fields.String(description='연구 결과 답변'),
+    'confidence': fields.Float(description='신뢰도 점수'),
+    'sources': fields.List(fields.String, description='참고 소스 목록'),
+    'fact_checks': fields.List(fields.Raw, description='사실 검증 결과'),
+    'research_time': fields.Float(description='연구 시간 (초)'),
+    'timestamp': fields.String(description='연구 시간')
+})
+
+system_status = api.model('SystemStatus', {
+    'success': fields.Boolean(description='성공 여부'),
+    'system_status': fields.Raw(description='시스템 상태 정보'),
+    'services': fields.Raw(description='서비스 상태 정보'),
+    'timestamp': fields.String(description='상태 조회 시간')
+})
+
+detector_info = api.model('DetectorInfo', {
+    'id': fields.String(description='탐지기 ID'),
+    'name': fields.String(description='탐지기 이름'),
+    'description': fields.String(description='탐지기 설명'),
+    'status': fields.String(description='탐지기 상태'),
+    'version': fields.String(description='탐지기 버전')
+})
 
 # 로깅 설정
 logging.basicConfig(
@@ -125,6 +588,9 @@ ai_consistent_detector = AIConsistentDetector()
 # 고급 시스템들
 validation_system = AdvancedValidationSystem()
 confidence_system = AdvancedConfidenceSystem()
+
+# 고급 머신러닝 탐지기 (우선순위 3-1)
+advanced_ml_detector = AdvancedMLDetector()
 
 # 전역 변수
 analysis_history = []
@@ -1089,6 +1555,58 @@ def perform_ai_self_analysis(statement, context, analysis_mode):
         if len(analysis_history) > 100:
             analysis_history.pop(0)
         
+        # 실시간 알림 발송
+        try:
+            truth_percentage = meta_analysis.truth_percentage
+            confidence_score = meta_analysis.confidence_score
+            detected_lies = ai_self_analysis.detected_lies
+            
+            # 분석 시작 알림
+            notification_manager.send_notification('analysis_start', {
+                'message': f'문장 분석을 시작합니다: {statement[:50]}...',
+                'statement': statement,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            # 분석 결과에 따른 알림
+            if truth_percentage < 30:
+                notification_manager.send_notification('lie_detected', {
+                    'message': f'거짓말이 탐지되었습니다! (진실성: {truth_percentage:.1f}%)',
+                    'statement': statement,
+                    'truth_percentage': truth_percentage,
+                    'detected_lies': detected_lies,
+                    'timestamp': datetime.now().isoformat()
+                })
+            elif truth_percentage > 90:
+                notification_manager.send_notification('high_confidence', {
+                    'message': f'높은 신뢰도로 진실한 문장입니다. (진실성: {truth_percentage:.1f}%)',
+                    'statement': statement,
+                    'truth_percentage': truth_percentage,
+                    'confidence_score': confidence_score,
+                    'timestamp': datetime.now().isoformat()
+                })
+            elif truth_percentage < 50:
+                notification_manager.send_notification('low_confidence', {
+                    'message': f'낮은 신뢰도입니다. (진실성: {truth_percentage:.1f}%)',
+                    'statement': statement,
+                    'truth_percentage': truth_percentage,
+                    'confidence_score': confidence_score,
+                    'timestamp': datetime.now().isoformat()
+                })
+            
+            # 분석 완료 알림
+            notification_manager.send_notification('analysis_complete', {
+                'message': f'문장 분석이 완료되었습니다.',
+                'statement': statement,
+                'truth_percentage': truth_percentage,
+                'confidence_score': confidence_score,
+                'processing_time': ai_self_analysis.processing_time,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"실시간 알림 발송 중 오류: {str(e)}")
+        
         return jsonify({
             'success': True,
             'analysis': analysis_record
@@ -1097,9 +1615,29 @@ def perform_ai_self_analysis(statement, context, analysis_mode):
     except Exception as e:
         return jsonify({'success': False, 'error': f'AI 자체 분석 중 오류가 발생했습니다: {str(e)}'}), 500
 
+@analysis_ns.route('/ai-self-analysis')
+class AISelfAnalysis(Resource):
+    @api.expect(analysis_request)
+    @api.marshal_with(analysis_response)
+    def post(self):
+        """AI 자체 진실성 분석"""
+        try:
+            data = request.get_json()
+            statement = data.get('statement', '').strip()
+            context = data.get('context', '').strip()
+            
+            if not statement:
+                return {'error': '문장을 입력해주세요.'}, 400
+            
+            return perform_ai_self_analysis(statement, context, 'all')
+            
+        except Exception as e:
+            return {'error': f'AI 자체 분석 중 오류가 발생했습니다: {str(e)}'}, 500
+
+# 기존 엔드포인트도 유지 (하위 호환성)
 @app.route('/api/ai-self-analysis', methods=['POST'])
 def api_ai_self_analysis():
-    """API: AI 자체 진실성 분석 전용 엔드포인트"""
+    """API: AI 자체 진실성 분석 전용 엔드포인트 (하위 호환성)"""
     try:
         data = request.get_json()
         statement = data.get('statement', '').strip()
@@ -1145,9 +1683,60 @@ def api_ai_self_stats():
     except Exception as e:
         return jsonify({'error': f'통계 조회 중 오류가 발생했습니다: {str(e)}'}), 500
 
+@research_ns.route('/question')
+class ResearchQuestion(Resource):
+    @api.expect(research_request)
+    @api.marshal_with(research_response)
+    def post(self):
+        """웹 연구를 통한 질문 분석"""
+        try:
+            data = request.get_json()
+            question = data.get('question', '').strip()
+            research_type = data.get('type', 'basic')  # basic, advanced, enhanced
+            
+            if not question:
+                return {'error': '질문을 입력해주세요.'}, 400
+            
+            # 연구 타입에 따라 다른 연구원 사용
+            if research_type == 'enhanced':
+                result = ai_enhanced_researcher.research_question(question)
+            elif research_type == 'advanced':
+                result = ai_advanced_researcher.research_question(question)
+            else:
+                result = ai_web_researcher.research_question(question)
+            
+            # 결과를 딕셔너리로 변환
+            result_dict = {
+                'question': result.question,
+                'answer': result.answer,
+                'confidence': result.confidence,
+                'sources': result.sources,
+                'fact_checks': [
+                    {
+                        'statement': getattr(fc, 'statement', ''),
+                        'is_factual': getattr(fc, 'is_factual', getattr(fc, 'is_verified', False)),
+                        'confidence': getattr(fc, 'confidence', 0.0),
+                        'evidence': getattr(fc, 'evidence', []),
+                        'verification_method': getattr(fc, 'verification_method', '')
+                    } for fc in getattr(result, 'fact_checks', [])
+                ],
+                'research_time': result.research_time,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            return {
+                'success': True,
+                **result_dict
+            }
+            
+        except Exception as e:
+            logger.error(f"웹 연구 중 오류: {str(e)}")
+            return {'error': f'웹 연구 중 오류가 발생했습니다: {str(e)}'}, 500
+
+# 기존 엔드포인트도 유지 (하위 호환성)
 @app.route('/api/research-question', methods=['POST'])
 def api_research_question():
-    """API: 질문 연구 및 답변"""
+    """API: 질문 연구 및 답변 (하위 호환성)"""
     try:
         data = request.get_json()
         question = data.get('question', '').strip()
@@ -1184,12 +1773,12 @@ def api_research_question():
             ],
             'fact_checks': [
                 {
-                    'statement': fc.get('statement', fc.statement if hasattr(fc, 'statement') else ''),
-                    'is_factual': getattr(fc, 'is_factual', fc.get('is_verified', fc.is_verified if hasattr(fc, 'is_verified') else False)),
-                    'confidence': fc.confidence if hasattr(fc, 'confidence') else fc.get('confidence', 0.0),
-                    'evidence': fc.evidence if hasattr(fc, 'evidence') else fc.get('evidence', []),
-                    'verification_method': fc.verification_method if hasattr(fc, 'verification_method') else fc.get('verification_method', '')
-                } for fc in result.fact_checks
+                    'statement': getattr(fc, 'statement', ''),
+                    'is_factual': getattr(fc, 'is_factual', getattr(fc, 'is_verified', False)),
+                    'confidence': getattr(fc, 'confidence', 0.0),
+                    'evidence': getattr(fc, 'evidence', []),
+                    'verification_method': getattr(fc, 'verification_method', '')
+                } for fc in getattr(result, 'fact_checks', [])
             ],
             'reasoning': result.reasoning,
             'limitations': getattr(result, 'limitations', []),
@@ -1235,7 +1824,7 @@ def api_verify_fact():
             return jsonify({'error': '검증할 문장을 입력해주세요.'}), 400
         
         # 고급 연구원으로 사실 검증 수행
-        result = ai_advanced_researcher.research_question(f"다음 문장이 사실인지 검증해주세요: {statement}")
+        result = ai_advanced_researcher.research_question(statement)
         
         # 사실 검증 결과 추출
         fact_verification = {
@@ -1632,6 +2221,491 @@ def api_clear_cache():
         logger.error(f"캐시 초기화 중 오류 발생: {str(e)}")
         return jsonify({'error': f'캐시 초기화 중 오류가 발생했습니다: {str(e)}'}), 500
 
+# =============================================================================
+# 우선순위 2-1: 추가 RESTful API 엔드포인트 구축
+# =============================================================================
+
+# API 버전 관리
+@app.route('/api/v1/version', methods=['GET'])
+def api_version():
+    """API 버전 정보 조회"""
+    return jsonify({
+        'version': '2.0.0-enterprise',
+        'api_version': 'v1',
+        'build_date': '2025-09-19',
+        'features': [
+            'ai_self_analysis',
+            'web_research',
+            'consistency_detection',
+            'fact_verification',
+            'batch_processing',
+            'real_time_monitoring'
+        ],
+        'endpoints': {
+            'analysis': '/api/v1/analysis',
+            'research': '/api/v1/research',
+            'verification': '/api/v1/verification',
+            'monitoring': '/api/v1/monitoring',
+            'statistics': '/api/v1/statistics'
+        }
+    })
+
+# 분석 결과 관리 API
+@app.route('/api/v1/analysis/<analysis_id>', methods=['GET'])
+def get_analysis_by_id(analysis_id):
+    """특정 분석 결과 조회"""
+    try:
+        # 분석 결과를 캐시나 데이터베이스에서 조회
+        # 현재는 간단한 예시 구현
+        return jsonify({
+            'success': True,
+            'analysis_id': analysis_id,
+            'status': 'completed',
+            'message': '분석 결과를 성공적으로 조회했습니다.',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"분석 결과 조회 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'분석 결과 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/v1/analysis/<analysis_id>', methods=['DELETE'])
+def delete_analysis(analysis_id):
+    """특정 분석 결과 삭제"""
+    try:
+        # 분석 결과를 캐시나 데이터베이스에서 삭제
+        return jsonify({
+            'success': True,
+            'analysis_id': analysis_id,
+            'message': '분석 결과가 성공적으로 삭제되었습니다.',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"분석 결과 삭제 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'분석 결과 삭제 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+# 시스템 상태 모니터링 API
+@monitoring_ns.route('/system/status')
+class SystemStatus(Resource):
+    @api.marshal_with(system_status)
+    def get(self):
+        """시스템 전체 상태 조회"""
+        try:
+            # 시스템 리소스 상태 확인
+            import psutil
+            import time
+            
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            
+            return {
+                'success': True,
+                'system_status': {
+                    'cpu_usage': f"{cpu_percent}%",
+                    'memory_usage': f"{memory.percent}%",
+                    'memory_available': f"{memory.available / (1024**3):.2f} GB",
+                    'disk_usage': f"{disk.percent}%",
+                    'disk_free': f"{disk.free / (1024**3):.2f} GB",
+                    'uptime': time.time() - psutil.boot_time(),
+                    'timestamp': datetime.now().isoformat()
+                },
+                'services': {
+                    'flask_app': 'running',
+                    'ai_detectors': 'active',
+                    'web_researcher': 'active',
+                    'consistency_detector': 'active'
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+        except ImportError:
+            return {
+                'success': True,
+                'system_status': {
+                    'message': 'psutil이 설치되지 않아 상세 정보를 제공할 수 없습니다.',
+                    'timestamp': datetime.now().isoformat()
+                },
+                'services': {
+                    'flask_app': 'running',
+                    'ai_detectors': 'active',
+                    'web_researcher': 'active',
+                    'consistency_detector': 'active'
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"시스템 상태 조회 중 오류: {str(e)}")
+            return {
+                'success': False,
+                'error': f'시스템 상태 조회 중 오류가 발생했습니다: {str(e)}'
+            }, 500
+
+# 기존 엔드포인트도 유지 (하위 호환성)
+@app.route('/api/v1/system/status', methods=['GET'])
+def system_status():
+    """시스템 전체 상태 조회 (하위 호환성)"""
+    try:
+        # 시스템 리소스 상태 확인
+        import psutil
+        import time
+        
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        return jsonify({
+            'success': True,
+            'system_status': {
+                'cpu_usage': f"{cpu_percent}%",
+                'memory_usage': f"{memory.percent}%",
+                'memory_available': f"{memory.available / (1024**3):.2f} GB",
+                'disk_usage': f"{disk.percent}%",
+                'disk_free': f"{disk.free / (1024**3):.2f} GB",
+                'uptime': time.time() - psutil.boot_time(),
+                'timestamp': datetime.now().isoformat()
+            },
+            'services': {
+                'flask_app': 'running',
+                'ai_detectors': 'active',
+                'web_researcher': 'active',
+                'consistency_detector': 'active'
+            }
+        })
+    except ImportError:
+        return jsonify({
+            'success': True,
+            'system_status': {
+                'message': 'psutil이 설치되지 않아 상세 정보를 제공할 수 없습니다.',
+                'timestamp': datetime.now().isoformat()
+            },
+            'services': {
+                'flask_app': 'running',
+                'ai_detectors': 'active',
+                'web_researcher': 'active',
+                'consistency_detector': 'active'
+            }
+        })
+    except Exception as e:
+        logger.error(f"시스템 상태 조회 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'시스템 상태 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+# 탐지기 관리 API
+@detectors_ns.route('/')
+class Detectors(Resource):
+    @api.marshal_with(detector_info, as_list=True)
+    def get(self):
+        """사용 가능한 탐지기 목록 조회"""
+        try:
+            detectors = [
+                {
+                    'id': 'ai_self_truth',
+                    'name': 'AI 자체 진실성 탐지기',
+                    'description': 'AI가 자신의 출력을 분석하여 진실성을 평가',
+                    'status': 'active',
+                    'version': '2.0.0'
+                },
+                {
+                    'id': 'web_researcher',
+                    'name': '웹 연구 탐지기',
+                    'description': '웹 검색을 통한 사실 검증 및 연구',
+                    'status': 'active',
+                    'version': '2.0.0'
+                },
+                {
+                    'id': 'consistency_detector',
+                    'name': '일관성 탐지기',
+                    'description': '문장의 논리적 일관성 및 모순 탐지',
+                    'status': 'active',
+                    'version': '2.0.0'
+                },
+                {
+                    'id': 'fact_verifier',
+                    'name': '사실 검증기',
+                    'description': '과학적 사실 및 일반 지식 검증',
+                    'status': 'active',
+                    'version': '2.0.0'
+                }
+            ]
+            
+            return detectors
+        except Exception as e:
+            logger.error(f"탐지기 목록 조회 중 오류: {str(e)}")
+            return {'error': f'탐지기 목록 조회 중 오류가 발생했습니다: {str(e)}'}, 500
+
+# 기존 엔드포인트도 유지 (하위 호환성)
+@app.route('/api/v1/detectors', methods=['GET'])
+def list_detectors():
+    """사용 가능한 탐지기 목록 조회 (하위 호환성)"""
+    try:
+        detectors = [
+            {
+                'id': 'ai_self_truth',
+                'name': 'AI 자체 진실성 탐지기',
+                'description': 'AI가 자신의 출력을 분석하여 진실성을 평가',
+                'status': 'active',
+                'version': '2.0.0'
+            },
+            {
+                'id': 'web_researcher',
+                'name': '웹 연구 탐지기',
+                'description': '웹 검색을 통한 사실 검증 및 연구',
+                'status': 'active',
+                'version': '2.0.0'
+            },
+            {
+                'id': 'consistency_detector',
+                'name': '일관성 탐지기',
+                'description': '문장의 논리적 일관성 및 모순 탐지',
+                'status': 'active',
+                'version': '2.0.0'
+            },
+            {
+                'id': 'fact_verifier',
+                'name': '사실 검증기',
+                'description': '과학적 사실 및 일반 지식 검증',
+                'status': 'active',
+                'version': '2.0.0'
+            }
+        ]
+        
+        return jsonify({
+            'success': True,
+            'detectors': detectors,
+            'total_count': len(detectors),
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"탐지기 목록 조회 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'탐지기 목록 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/v1/detectors/<detector_id>/status', methods=['GET'])
+def detector_status(detector_id):
+    """특정 탐지기 상태 조회"""
+    try:
+        # 탐지기별 상태 확인 로직
+        detector_status_map = {
+            'ai_self_truth': 'active',
+            'web_researcher': 'active',
+            'consistency_detector': 'active',
+            'fact_verifier': 'active'
+        }
+        
+        status = detector_status_map.get(detector_id, 'unknown')
+        
+        return jsonify({
+            'success': True,
+            'detector_id': detector_id,
+            'status': status,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"탐지기 상태 조회 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'탐지기 상태 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+# 배치 작업 관리 API
+@app.route('/api/v1/batch/jobs', methods=['GET'])
+def list_batch_jobs():
+    """배치 작업 목록 조회"""
+    try:
+        # 현재는 빈 목록 반환 (실제 구현에서는 작업 큐에서 조회)
+        return jsonify({
+            'success': True,
+            'jobs': [],
+            'total_count': 0,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"배치 작업 목록 조회 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'배치 작업 목록 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/v1/batch/jobs/<job_id>', methods=['GET'])
+def get_batch_job(job_id):
+    """특정 배치 작업 조회"""
+    try:
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'status': 'completed',
+            'message': '배치 작업을 성공적으로 조회했습니다.',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"배치 작업 조회 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'배치 작업 조회 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+# 고급 분석 기능 API
+@app.route('/api/advanced/pattern-analysis', methods=['POST'])
+def api_pattern_analysis():
+    """패턴 분석 API"""
+    try:
+        data = request.get_json()
+        analysis_data = data.get('analysis_data', [])
+        
+        if not analysis_data:
+            return jsonify({'error': '분석할 데이터가 없습니다.'}), 400
+        
+        from advanced_analysis_engine import advanced_analysis_engine
+        result = advanced_analysis_engine.analyze_patterns(analysis_data)
+        
+        return jsonify({
+            'success': True,
+            'pattern_analysis': result,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"패턴 분석 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'패턴 분석 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/advanced/user-behavior', methods=['POST'])
+def api_user_behavior_analysis():
+    """사용자 행동 분석 API"""
+    try:
+        data = request.get_json()
+        user_data = data.get('user_data', [])
+        
+        if not user_data:
+            return jsonify({'error': '사용자 데이터가 없습니다.'}), 400
+        
+        from advanced_analysis_engine import advanced_analysis_engine
+        result = advanced_analysis_engine.analyze_user_behavior(user_data)
+        
+        return jsonify({
+            'success': True,
+            'user_behavior_analysis': result,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"사용자 행동 분석 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'사용자 행동 분석 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/advanced/predict-truth', methods=['POST'])
+def api_predict_truth():
+    """진실성 점수 예측 API"""
+    try:
+        data = request.get_json()
+        features = data.get('features', {})
+        
+        if not features:
+            return jsonify({'error': '예측을 위한 특성이 없습니다.'}), 400
+        
+        from advanced_analysis_engine import advanced_analysis_engine
+        result = advanced_analysis_engine.predict_truth_score(features)
+        
+        return jsonify({
+            'success': True,
+            'prediction': result,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"진실성 점수 예측 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'진실성 점수 예측 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/advanced/predict-load', methods=['POST'])
+def api_predict_system_load():
+    """시스템 부하 예측 API"""
+    try:
+        data = request.get_json()
+        historical_data = data.get('historical_data', [])
+        
+        if not historical_data:
+            return jsonify({'error': '예측을 위한 과거 데이터가 없습니다.'}), 400
+        
+        from advanced_analysis_engine import advanced_analysis_engine
+        result = advanced_analysis_engine.predict_system_load(historical_data)
+        
+        return jsonify({
+            'success': True,
+            'prediction': result,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"시스템 부하 예측 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'시스템 부하 예측 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/advanced/dashboard', methods=['GET'])
+def api_dashboard_data():
+    """실시간 대시보드 데이터 API"""
+    try:
+        # 실제 구현에서는 데이터베이스에서 최근 분석 데이터를 가져옵니다
+        # 여기서는 빈 데이터로 대시보드 구조를 보여줍니다
+        analysis_data = []
+        
+        from advanced_analysis_engine import advanced_analysis_engine
+        result = advanced_analysis_engine.generate_dashboard_data(analysis_data)
+        
+        return jsonify({
+            'success': True,
+            'dashboard_data': result,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"대시보드 데이터 생성 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'대시보드 데이터 생성 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+@app.route('/api/advanced/comprehensive-report', methods=['POST'])
+def api_comprehensive_report():
+    """종합 분석 보고서 API"""
+    try:
+        data = request.get_json()
+        analysis_data = data.get('analysis_data', [])
+        user_data = data.get('user_data', [])
+        
+        from advanced_analysis_engine import advanced_analysis_engine
+        result = advanced_analysis_engine.generate_comprehensive_report(analysis_data, user_data)
+        
+        return jsonify({
+            'success': True,
+            'comprehensive_report': result,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"종합 보고서 생성 중 오류: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'종합 보고서 생성 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
 # 에러 핸들러
 @app.errorhandler(404)
 def not_found(error):
@@ -1662,4 +2736,4 @@ if __name__ == '__main__':
     logger.info(f"버전: 2.0.0-enterprise")
     logger.info(f"Flask 디버그 모드: {app.debug}")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

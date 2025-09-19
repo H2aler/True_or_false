@@ -42,6 +42,7 @@ class AISelfAnalysis:
     corrected_statement: str
     analysis_timestamp: datetime
     self_reflection: str
+    processing_time: float = 0.0
 
 class AISelfTruthDetector:
     """AI 자체 진실성 탐지기"""
@@ -121,6 +122,7 @@ class AISelfTruthDetector:
     def analyze_self(self, statement: str, context: str = "") -> AISelfAnalysis:
         """AI가 자신의 출력을 분석"""
         logger.info(f"AI 자체 분석 시작: {statement[:50]}...")
+        start_time = time.time()
         
         # 1단계: 거짓말 패턴 탐지
         detected_lies = self._detect_lies(statement)
@@ -141,6 +143,8 @@ class AISelfTruthDetector:
         # 6단계: 자기 성찰
         self_reflection = self._self_reflect(statement, detected_lies, truth_percentage)
         
+        processing_time = time.time() - start_time
+        
         return AISelfAnalysis(
             original_statement=statement,
             truth_percentage=truth_percentage,
@@ -150,7 +154,8 @@ class AISelfTruthDetector:
             correction_suggestions=correction_suggestions,
             corrected_statement=corrected_statement,
             analysis_timestamp=datetime.now(),
-            self_reflection=self_reflection
+            self_reflection=self_reflection,
+            processing_time=processing_time
         )
     
     def _detect_lies(self, statement: str) -> List[str]:

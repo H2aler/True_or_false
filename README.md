@@ -232,22 +232,71 @@ AI 진실성 탐지기 (Enterprise Edition)
 - Plotly 기반 인터랙티브 차트
 - 타임라인으로 검색 과정 시각화
 
+## 🎉 최신 업데이트 (v2.0.0-enterprise)
+
+### ✅ **완료된 기능들**
+1. **머신러닝 모델 통합**: BERT, Random Forest, Gradient Boosting, SVM, Logistic Regression
+2. **RESTful API 서비스**: 45개 API 엔드포인트 (93.3% 성공률)
+3. **실시간 알림 시스템**: SocketIO 기반 실시간 알림
+4. **API 문서화**: Swagger/OpenAPI 완전 구현
+5. **JWT 인증 시스템**: 보안 강화된 API 인증
+6. **Docker 컨테이너화**: 프로덕션 배포 준비 완료
+7. **데이터베이스 통합**: PostgreSQL + Redis 캐싱
+8. **고급 분석 기능**: 패턴 분석, 예측, 사용자 행동 분석
+9. **모니터링 시스템**: Prometheus + Grafana 통합
+10. **다국어 지원**: 한국어, 영어, 프랑스어 검색 엔진
+11. **🆕 버전 선택 시스템**: Basic 버전과 Enterprise 버전을 통합 선택 가능
+
+### 🔧 **새로운 아키텍처**
+```
+AI 진실성 탐지기 (Enterprise Edition) v2.0.0
+├── 🎯 버전 선택 시스템 (NEW!)
+│   ├── version_selector.py              # 버전 선택 관리자
+│   ├── run_versions.py                  # 통합 실행 스크립트
+│   ├── app_basic.py                     # 기본 버전 (포트 5000)
+│   ├── start_versions.bat               # Windows 실행 배치
+│   └── templates/
+│       ├── version_selector.html        # 버전 선택 UI
+│       ├── launch.html                  # 버전 실행 UI
+│       └── basic/index.html             # 기본 버전 UI
+├── 🧠 핵심 엔진 (기존)
+├── 🤖 AI 자체 분석 (기존)
+├── 🌐 웹 연구 시스템 (기존)
+├── 🔍 전문 탐지기들 (기존)
+├── 🚀 새로운 기능들
+│   ├── advanced_ml_detector.py          # 머신러닝 모델 통합
+│   ├── database_config.py               # 데이터베이스 관리
+│   ├── advanced_analysis_engine.py      # 고급 분석 엔진
+│   ├── Dockerfile                       # 컨테이너화
+│   ├── docker-compose.yml               # 멀티 서비스 배포
+│   ├── nginx.conf                       # 리버스 프록시
+│   └── prometheus.yml                   # 모니터링 설정
+├── 🌐 웹 인터페이스 (확장)
+│   ├── app.py (45개 API 엔드포인트)      # Flask 웹 애플리케이션 (포트 5001)
+│   ├── templates/ (기존)
+│   └── static/ (기존)
+└── 📚 문서화 (확장)
+    ├── README.md (이 파일)
+    ├── DEVELOPMENT_PRIORITIES_v0.0.1.md # 개발 우선순위
+    └── logs/ (기존)
+```
+
 ## 🔮 향후 개발 계획
 
 ### 단기 목표 (v3.0.0)
-1. **머신러닝 모델 통합**: 더 정교한 거짓말 탐지 모델
-2. **API 서비스**: RESTful API 제공
-3. **실시간 알림**: 거짓말 감지 시 즉시 알림
-4. **히스토리 분석**: 장기간 트렌드 분석
+1. **A/B 테스트 시스템**: 모델 성능 비교 및 최적화
+2. **실시간 대시보드**: Grafana 기반 모니터링 대시보드
+3. **API 버전 관리**: v2, v3 API 동시 지원
+4. **성능 최적화**: 응답 시간 0.1초 이하 달성
 
 ### 중기 목표 (v4.0.0)
 1. **커스텀 규칙**: 사용자 정의 검증 규칙
-2. **클라우드 배포**: AWS/Azure 클라우드 서비스
+2. **클라우드 배포**: AWS/Azure 클라우드 서비스 완전 배포
 3. **모바일 앱**: iOS/Android 네이티브 앱
 4. **실시간 협업**: 다중 사용자 동시 분석
 
 ### 장기 목표 (v5.0.0)
-1. **AI 모델 통합**: GPT, BERT 등 대형 언어 모델과 연동
+1. **AI 모델 통합**: GPT-4, Claude 등 대형 언어 모델과 연동
 2. **실시간 스트리밍**: 실시간 대화 분석
 3. **국제 표준화**: 진실성 측정 국제 표준 제정 참여
 4. **상용화**: 기업용 솔루션 제공
@@ -289,4 +338,52 @@ AI 진실성 탐지기 (Enterprise Edition)
 
 ---
 
-*마지막 업데이트: 2025년 09월 19일*
+*마지막 업데이트: 2025년 09월 20일*
+
+## 🚀 실행 방법
+
+### 1. 🎯 **통합 버전 선택 시스템 (권장)**
+```bash
+# Windows
+start_versions.bat
+
+# 또는 직접 실행
+python run_versions.py
+```
+- **버전 선택기**: http://localhost:3000
+- **기본 버전**: http://localhost:5000  
+- **엔터프라이즈 버전**: http://localhost:5001
+- 웹 인터페이스에서 원하는 버전을 선택하여 사용
+
+### 2. 🌟 **Enterprise Edition (직접 실행)**
+```bash
+python app.py
+```
+- 웹 서버: http://localhost:5001
+- API 문서: http://localhost:5001/api/docs/
+- 45개 API 엔드포인트 제공
+- 실시간 알림 시스템
+- JWT 인증 지원
+
+### 3. ⭐ **Basic Version (직접 실행)**
+```bash
+python app_basic.py
+```
+- 웹 서버: http://localhost:5000
+- 기본 진실성 탐지 기능
+- 간단한 웹 인터페이스
+
+### 4. 🐳 **Docker 컨테이너 (프로덕션)**
+```bash
+# 단일 컨테이너
+docker build -t ai-truth-detector .
+docker run -p 5001:5001 ai-truth-detector
+
+# 멀티 서비스 (Docker Compose)
+docker-compose up -d
+```
+- 웹 서버: http://localhost:5001
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000

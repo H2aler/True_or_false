@@ -1,0 +1,107 @@
+[
+  {
+    "test_name": "Health Check",
+    "success": true,
+    "message": "Status: healthy",
+    "response_time": 3.6260812282562256,
+    "timestamp": "2025-09-20T05:29:08.635668"
+  },
+  {
+    "test_name": "Version API",
+    "success": true,
+    "message": "Version: 2.0.0-enterprise",
+    "response_time": 2.0559184551239014,
+    "timestamp": "2025-09-20T05:29:10.691586"
+  },
+  {
+    "test_name": "System Status",
+    "success": true,
+    "message": "Status: None",
+    "response_time": 3.0544273853302,
+    "timestamp": "2025-09-20T05:29:13.746014"
+  },
+  {
+    "test_name": "Detectors API",
+    "success": true,
+    "message": "Detectors count: 4",
+    "response_time": 2.041124105453491,
+    "timestamp": "2025-09-20T05:29:15.789117"
+  },
+  {
+    "test_name": "Swagger Docs",
+    "success": true,
+    "message": "Documentation accessible",
+    "response_time": 2.0758602619171143,
+    "timestamp": "2025-09-20T05:29:17.864978"
+  },
+  {
+    "test_name": "Analysis API",
+    "success": false,
+    "message": "Status code: No response",
+    "response_time": 2.0721986293792725,
+    "timestamp": "2025-09-20T05:29:19.938171"
+  },
+  {
+    "test_name": "AI Self Analysis API",
+    "success": true,
+    "message": "Self analysis completed",
+    "response_time": 2.0495920181274414,
+    "timestamp": "2025-09-20T05:29:21.989684"
+  },
+  {
+    "test_name": "Research Question API",
+    "success": true,
+    "message": "Research completed",
+    "response_time": 3.605699300765991,
+    "timestamp": "2025-09-20T05:29:25.596408"
+  },
+  {
+    "test_name": "Fact Verification API",
+    "success": true,
+    "message": "Fact verification completed",
+    "response_time": 37.1530704498291,
+    "timestamp": "2025-09-20T05:30:02.749479"
+  },
+  {
+    "test_name": "ML Analysis API",
+    "success": true,
+    "message": "ML analysis completed",
+    "response_time": 2.0485899448394775,
+    "timestamp": "2025-09-20T05:30:04.798068"
+  },
+  {
+    "test_name": "ML Status API",
+    "success": true,
+    "message": "ML status retrieved",
+    "response_time": 2.0321102142333984,
+    "timestamp": "2025-09-20T05:30:06.831178"
+  },
+  {
+    "test_name": "Consistency Analysis API",
+    "success": true,
+    "message": "Consistency analysis completed",
+    "response_time": 2.0528030395507812,
+    "timestamp": "2025-09-20T05:30:08.885991"
+  },
+  {
+    "test_name": "Batch Analysis API",
+    "success": true,
+    "message": "Batch analysis completed",
+    "response_time": 2.04852557182312,
+    "timestamp": "2025-09-20T05:30:10.934517"
+  },
+  {
+    "test_name": "Metrics API",
+    "success": true,
+    "message": "Metrics retrieved",
+    "response_time": 2.0514585971832275,
+    "timestamp": "2025-09-20T05:30:12.987486"
+  },
+  {
+    "test_name": "Export API",
+    "success": true,
+    "message": "Export completed",
+    "response_time": 2.0439612865448,
+    "timestamp": "2025-09-20T05:30:15.031447"
+  }
+]

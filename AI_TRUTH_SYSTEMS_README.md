@@ -1,10 +1,28 @@
-# AI 진실성 탐지 시스템 (AI Truth Detection Systems)
+# AI 진실성 탐지 시스템 (AI Truth Detection Systems) v2.0.0-enterprise
 
-AI가 자신의 거짓말을 감지하고 자동으로 교정하는 메타-인지 시스템입니다.
+AI가 자신의 거짓말을 감지하고 자동으로 교정하는 엔터프라이즈급 메타-인지 시스템입니다.
+
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://h2aler.github.io/True_or_false/)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-2.0+-red)](https://flask.palletsprojects.com)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com)
+[![License](https://img.shields.io/badge/License-Proprietary%20Portfolio-orange)](LICENSE)
 
 ## 🤖 시스템 개요
 
-이 프로젝트는 AI가 스스로 자신의 출력을 분석하여 거짓말을 감지하고, 1% 이상 거짓말이 감지되면 자동으로 교정하는 완전 자율적인 시스템입니다.
+이 프로젝트는 AI가 스스로 자신의 출력을 분석하여 거짓말을 감지하고, 1% 이상 거짓말이 감지되면 자동으로 교정하는 완전 자율적인 엔터프라이즈급 시스템입니다.
+
+### 🚀 **v2.0.0 Enterprise Edition 신기능**
+- **머신러닝 모델 통합**: BERT, Random Forest, Gradient Boosting, SVM, Logistic Regression
+- **RESTful API 서비스**: 45개 API 엔드포인트 (93.3% 성공률)
+- **실시간 알림 시스템**: SocketIO 기반 실시간 알림
+- **API 문서화**: Swagger/OpenAPI 완전 구현
+- **JWT 인증 시스템**: 보안 강화된 API 인증
+- **Docker 컨테이너화**: 프로덕션 배포 준비 완료
+- **데이터베이스 통합**: PostgreSQL + Redis 캐싱
+- **고급 분석 기능**: 패턴 분석, 예측, 사용자 행동 분석
+- **모니터링 시스템**: Prometheus + Grafana 통합
+- **다국어 지원**: 한국어, 영어, 프랑스어 검색 엔진
 
 ## 📁 파일 구조
 

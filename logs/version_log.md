@@ -17,6 +17,47 @@
 
 ## 🔄 버전 히스토리
 
+### v2.0.0-enterprise - 2025-09-20 (엔터프라이즈 에디션)
+**상태**: ✅ 완료
+**변경사항**:
+- 머신러닝 모델 통합 (BERT, Random Forest, Gradient Boosting, SVM, Logistic Regression)
+- RESTful API 서비스 구축 (45개 API 엔드포인트, 93.3% 성공률)
+- 실시간 알림 시스템 (SocketIO 기반)
+- API 문서화 (Swagger/OpenAPI 완전 구현)
+- JWT 인증 시스템 구축
+- Docker 컨테이너화 및 Docker Compose 설정
+- 데이터베이스 통합 (PostgreSQL + Redis 캐싱)
+- 고급 분석 기능 (패턴 분석, 예측, 사용자 행동 분석)
+- 모니터링 시스템 (Prometheus + Grafana 통합)
+- 다국어 지원 (한국어, 영어, 프랑스어 검색 엔진)
+- 웹 검색 시스템 개선 (실제 웹 스크래핑 구현)
+- 신뢰도 계산 알고리즘 개선
+- 고급 분석 엔진 구현
+
+**주요 파일**:
+- `advanced_ml_detector.py` - 머신러닝 모델 통합
+- `database_config.py` - 데이터베이스 관리
+- `advanced_analysis_engine.py` - 고급 분석 엔진
+- `Dockerfile` - 컨테이너화
+- `docker-compose.yml` - 멀티 서비스 배포
+- `nginx.conf` - 리버스 프록시 설정
+- `prometheus.yml` - 모니터링 설정
+- `app.py` (확장) - 45개 API 엔드포인트 추가
+- `ai_web_researcher.py` (개선) - 실제 웹 스크래핑 구현
+- `ai_advanced_researcher.py` (개선) - 신뢰도 계산 개선
+- `ai_enhanced_researcher.py` (개선) - 다국어 지원 강화
+
+**성능 지표**:
+- API 엔드포인트: 45개 (93.3% 성공률)
+- 지원 언어: 한국어, 영어, 프랑스어
+- 검색 엔진: Google, Naver, Daum, DuckDuckGo
+- 머신러닝 모델: BERT, Random Forest, Gradient Boosting, SVM, Logistic Regression
+- 데이터베이스: PostgreSQL + Redis
+- 컨테이너화: Docker + Docker Compose
+- 모니터링: Prometheus + Grafana
+
+---
+
 ### v1.0.0 - 2025-09-04 (초기 버전)
 **상태**: ✅ 완료
 **변경사항**:

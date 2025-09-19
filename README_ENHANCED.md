@@ -1,10 +1,28 @@
-# 🤖 Enhanced AI Truth Detector
+# 🤖 Enhanced AI Truth Detector (Enterprise Edition v2.0.0)
 
-**향상된 AI 진실성 탐지기** - AI가 생성한 문장의 진실성을 분석하고 교정하는 고급 시스템
+**향상된 AI 진실성 탐지기** - AI가 생성한 문장의 진실성을 분석하고 교정하는 엔터프라이즈급 고급 시스템
+
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://h2aler.github.io/True_or_false/)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-2.0+-red)](https://flask.palletsprojects.com)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com)
+[![License](https://img.shields.io/badge/License-Proprietary%20Portfolio-orange)](LICENSE)
 
 ## ✨ 주요 기능
 
-### 🔍 12개 고급 탐지기
+### 🚀 **v2.0.0 Enterprise Edition 신기능**
+- **머신러닝 모델 통합**: BERT, Random Forest, Gradient Boosting, SVM, Logistic Regression
+- **RESTful API 서비스**: 45개 API 엔드포인트 (93.3% 성공률)
+- **실시간 알림 시스템**: SocketIO 기반 실시간 알림
+- **API 문서화**: Swagger/OpenAPI 완전 구현
+- **JWT 인증 시스템**: 보안 강화된 API 인증
+- **Docker 컨테이너화**: 프로덕션 배포 준비 완료
+- **데이터베이스 통합**: PostgreSQL + Redis 캐싱
+- **고급 분석 기능**: 패턴 분석, 예측, 사용자 행동 분석
+- **모니터링 시스템**: Prometheus + Grafana 통합
+- **다국어 지원**: 한국어, 영어, 프랑스어 검색 엔진
+
+### 🔍 13개 고급 탐지기
 - **과장 표현 탐지기**: "완전히", "절대적으로", "100%" 등 과장된 표현 감지
 - **논리적 모순 탐지기**: "모든 사람이 일부 사람과 다르다" 등 논리적 모순 감지
 - **과학적 사실 탐지기**: "지구는 평평하다", "물은 200도에서 끓는다" 등 과학적 오류 감지

@@ -185,8 +185,8 @@ class AIAdvancedResearcher:
         )
     
     def _analyze_question(self, question: str) -> Dict[str, Any]:
-        """질문 분석 및 검색 전략 수립"""
-        # 질문 유형 분류
+        """질문 분석 및 검색 전략 수립 - 입력된 문장만 검색"""
+        # 질문 유형 분류 (분석용으로만 사용)
         question_types = []
         if any(word in question for word in ['무엇', '뭐', 'what']):
             question_types.append('definition')
@@ -199,30 +199,90 @@ class AIAdvancedResearcher:
         if any(word in question for word in ['어떻게', 'how']):
             question_types.append('process')
         
-        # 검색 키워드 생성
-        keywords = [question]
+        # 입력된 문장 자체만 검색 키워드로 사용
+        keywords = [question.strip()]
         
-        # 질문 유형별 키워드 추가
-        if 'definition' in question_types:
-            keywords.append(question + ' 정의 의미')
-        if 'temporal' in question_types:
-            keywords.append(question + ' 날짜 시간')
-        if 'location' in question_types:
-            keywords.append(question + ' 위치 장소')
-        if 'causal' in question_types:
-            keywords.append(question + ' 이유 원인')
-        if 'process' in question_types:
-            keywords.append(question + ' 방법 과정')
-        
-        # 영어 키워드 추가
-        if not any(ord(char) > 127 for char in question):
-            keywords.append(question + ' facts information research')
+        # 문장이 너무 길 경우 핵심 부분만 추출
+        if len(question) > 100:
+            keywords = [question[:100].strip()]
         
         return {
             'types': question_types,
-            'keywords': keywords[:5],  # 상위 5개만 사용
+            'keywords': keywords,  # 입력 문장만 사용
             'complexity': len(question.split()) / 10.0
         }
+    
+    def _detect_language(self, text: str) -> str:
+        """텍스트 언어 감지 (개선된 버전)"""
+        import re
+        
+        # 한국어 패턴 (한글 문자)
+        korean_pattern = re.compile(r'[가-힣]')
+        # 영어 패턴 (라틴 문자)
+        english_pattern = re.compile(r'[a-zA-Z]')
+        # 프랑스어 패턴 (프랑스어 특수 문자 포함)
+        french_pattern = re.compile(r'[àâäéèêëïîôöùûüÿçñ]')
+        
+        korean_count = len(korean_pattern.findall(text))
+        english_count = len(english_pattern.findall(text))
+        french_count = len(french_pattern.findall(text))
+        
+        # 프랑스어 키워드 패턴 추가
+        french_keywords = ['un ', 'une ', 'le ', 'la ', 'les ', 'des ', 'du ', 'de ', 'est ', 'sont ', 'animal', 'lapin', 'chien', 'chat']
+        french_keyword_count = sum(1 for keyword in french_keywords if keyword in text.lower())
+        
+        if korean_count > 0:
+            return 'ko'
+        elif french_count > 0 or french_keyword_count > 0:
+            return 'fr'
+        else:
+            return 'en'
+    
+    def _convert_to_search_query(self, query: str) -> str:
+        """다국어 문장을 적절한 검색 쿼리로 변환"""
+        language = self._detect_language(query)
+        
+        # 언어별 매핑 테이블
+        query_mappings = {
+            'ko': {
+                '지구는 둥글다': 'earth_is_round',
+                '물은 100도에서 끓는다': 'water_boils_at_100_degrees',
+                '오류는 오류를 만든다': 'error_breeds_error',
+                '1+1=2': 'one_plus_one_equals_two',
+                '태양은 중심에 있다': 'sun_is_at_center',
+                '중력이 존재한다': 'gravity_exists',
+                'DNA는 이중나선 구조다': 'dna_double_helix_structure'
+            },
+            'en': {
+                'the earth is round': 'earth_is_round',
+                'water boils at 100 degrees': 'water_boils_at_100_degrees',
+                'error breeds error': 'error_breeds_error',
+                '1+1=2': 'one_plus_one_equals_two',
+                'the sun is at the center': 'sun_is_at_center',
+                'gravity exists': 'gravity_exists',
+                'DNA has a double helix structure': 'dna_double_helix_structure'
+            },
+            'fr': {
+                'la terre est ronde': 'earth_is_round',
+                'l\'eau bout à 100 degrés': 'water_boils_at_100_degrees',
+                'l\'erreur engendre l\'erreur': 'error_breeds_error',
+                '1+1=2': 'one_plus_one_equals_two',
+                'le soleil est au centre': 'sun_is_at_center',
+                'la gravité existe': 'gravity_exists',
+                'l\'ADN a une structure en double hélice': 'dna_double_helix_structure'
+            }
+        }
+        
+        # 해당 언어의 매핑 테이블에서 검색
+        if language in query_mappings and query in query_mappings[language]:
+            return query_mappings[language][query]
+        else:
+            # 매핑되지 않은 경우 URL-safe한 형태로 변환
+            import re
+            # 특수 문자 제거 후 공백을 언더스코어로 변환
+            safe_query = re.sub(r'[^\w\s]', '', query)
+            safe_query = re.sub(r'\s+', '_', safe_query)
+            return safe_query[:50]  # 50자로 제한
     
     def _perform_web_search(self, query: str, max_results: int = 5) -> List[WebSearchResult]:
         """웹 검색 수행"""
@@ -269,46 +329,120 @@ class AIAdvancedResearcher:
         return results
     
     def _generate_mock_results(self, query: str, max_results: int) -> List[Dict[str, str]]:
-        """시뮬레이션된 검색 결과 생성"""
-        # 실제로는 검색 API를 사용해야 함
-        mock_results = []
+        """언어별 검색 엔진을 사용한 검색 결과 생성"""
+        language = self._detect_language(query)
         
-        # 다양한 소스 타입의 시뮬레이션 결과
-        source_templates = [
-            {
-                'title': f'{query} - Wikipedia',
-                'url': f'https://ko.wikipedia.org/wiki/{quote(query)}',
-                'snippet': f'{query}에 대한 상세한 정보가 위키피디아에 있습니다.',
-                'domain': 'wikipedia.org'
-            },
-            {
-                'title': f'{query} 관련 연구 - Nature',
-                'url': f'https://www.nature.com/articles/{quote(query)}',
-                'snippet': f'{query}에 대한 최신 과학 연구 결과입니다.',
-                'domain': 'nature.com'
-            },
-            {
-                'title': f'{query} 뉴스 - BBC',
-                'url': f'https://www.bbc.com/news/{quote(query)}',
-                'snippet': f'{query}에 대한 최신 뉴스와 분석입니다.',
-                'domain': 'bbc.com'
-            },
-            {
-                'title': f'{query} 의학 정보 - Mayo Clinic',
-                'url': f'https://www.mayoclinic.org/{quote(query)}',
-                'snippet': f'{query}에 대한 의학적 정보와 치료법입니다.',
-                'domain': 'mayoclinic.org'
-            },
-            {
-                'title': f'{query} - Scientific American',
-                'url': f'https://www.scientificamerican.com/{quote(query)}',
-                'snippet': f'{query}에 대한 과학적 설명과 분석입니다.',
-                'domain': 'scientificamerican.com'
-            }
-        ]
+        # 언어별 검색 결과 생성
+        search_results = []
+        
+        if language == 'ko':
+            # 한국어 검색 결과 - 실제 검색 URL 형식 사용
+            import urllib.parse
+            encoded_query = urllib.parse.quote_plus(query)
+            
+            search_results = [
+                {
+                    'title': f'{query} - 네이버 백과사전 검색',
+                    'url': f'https://terms.naver.com/search.naver?query={encoded_query}&searchType=&dicType=&subject=',
+                    'snippet': f'{query}에 대한 네이버 백과사전 검색 결과입니다.',
+                    'domain': 'terms.naver.com'
+                },
+                {
+                    'title': f'{query} - 네이버 통합검색',
+                    'url': f'https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query={encoded_query}&ackey=ptf8jcu2',
+                    'snippet': f'{query}에 대한 네이버 통합검색 결과입니다.',
+                    'domain': 'search.naver.com'
+                },
+                {
+                    'title': f'{query} - 구글 검색 결과',
+                    'url': f'https://www.google.com/search?q={encoded_query}',
+                    'snippet': f'{query}에 대한 구글 검색 결과입니다.',
+                    'domain': 'google.com'
+                },
+                {
+                    'title': f'{query} - 다음 통합검색',
+                    'url': f'https://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&q={encoded_query}',
+                    'snippet': f'{query}에 대한 다음 통합검색 결과입니다.',
+                    'domain': 'search.daum.net'
+                },
+                {
+                    'title': f'{query} - 다음 백과사전 검색',
+                    'url': f'https://100.daum.net/search/entry?q={encoded_query}',
+                    'snippet': f'{query}에 대한 다음 백과사전 검색 결과입니다.',
+                    'domain': '100.daum.net'
+                }
+            ]
+        elif language == 'fr':
+            # 프랑스어 검색 결과
+            search_results = [
+                {
+                    'title': f'{query} - Wikipédia',
+                    'url': f'https://fr.wikipedia.org/wiki/{query.replace(" ", "_")}',
+                    'snippet': f'Informations détaillées sur {query} dans Wikipédia.',
+                    'domain': 'wikipedia.fr'
+                },
+                {
+                    'title': f'{query} - Google France',
+                    'url': f'https://www.google.fr/search?q={query.replace(" ", "+")}',
+                    'snippet': f'Résultats de recherche pour {query} sur Google France.',
+                    'domain': 'google.fr'
+                },
+                {
+                    'title': f'{query} - Le Monde',
+                    'url': f'https://www.lemonde.fr/recherche/?query={query.replace(" ", "+")}',
+                    'snippet': f'Actualités et analyses sur {query} dans Le Monde.',
+                    'domain': 'lemonde.fr'
+                },
+                {
+                    'title': f'{query} - France Info',
+                    'url': f'https://www.francetvinfo.fr/recherche?q={query.replace(" ", "+")}',
+                    'snippet': f'Informations sur {query} sur France Info.',
+                    'domain': 'francetvinfo.fr'
+                },
+                {
+                    'title': f'{query} - CNRS',
+                    'url': f'https://www.cnrs.fr/fr/recherche?q={query.replace(" ", "+")}',
+                    'snippet': f'Recherche scientifique sur {query} au CNRS.',
+                    'domain': 'cnrs.fr'
+                }
+            ]
+        else:
+            # 영어 검색 결과
+            search_results = [
+                {
+                    'title': f'{query} - Wikipedia',
+                    'url': f'https://en.wikipedia.org/wiki/{query.replace(" ", "_")}',
+                    'snippet': f'Detailed information about {query} on Wikipedia.',
+                    'domain': 'wikipedia.org'
+                },
+                {
+                    'title': f'{query} - Google Search',
+                    'url': f'https://www.google.com/search?q={query.replace(" ", "+")}',
+                    'snippet': f'Search results for {query} on Google.',
+                    'domain': 'google.com'
+                },
+                {
+                    'title': f'{query} - Bing Search',
+                    'url': f'https://www.bing.com/search?q={query.replace(" ", "+")}',
+                    'snippet': f'Search results for {query} on Bing.',
+                    'domain': 'bing.com'
+                },
+                {
+                    'title': f'{query} - BBC News',
+                    'url': f'https://www.bbc.com/news/search?q={query.replace(" ", "+")}',
+                    'snippet': f'Latest news and analysis about {query} from BBC.',
+                    'domain': 'bbc.com'
+                },
+                {
+                    'title': f'{query} - Nature',
+                    'url': f'https://www.nature.com/search?q={query.replace(" ", "+")}',
+                    'snippet': f'Scientific research and publications about {query} in Nature.',
+                    'domain': 'nature.com'
+                }
+            ]
         
         # 랜덤하게 선택하여 반환
-        selected = random.sample(source_templates, min(max_results, len(source_templates)))
+        selected = random.sample(search_results, min(max_results, len(search_results)))
         return selected
     
     def _fetch_web_content(self, url: str) -> str:
@@ -484,7 +618,7 @@ class AIAdvancedResearcher:
             return "죄송합니다. 이 질문에 대한 신뢰할 수 있는 정보를 찾을 수 없습니다.", 0.0, "검색 결과가 없음", ["정보 부족"]
         
         # 신뢰도가 높은 소스들만 사용
-        reliable_sources = [s for s in sources if s.credibility_score > 0.7]
+        reliable_sources = [s for s in sources if s.credibility_score > 0.5]
         
         if not reliable_sources:
             return "찾은 정보의 신뢰도가 낮아 정확한 답변을 제공하기 어렵습니다.", 0.3, "신뢰할 수 있는 소스 부족", ["신뢰도 낮음"]
@@ -516,16 +650,24 @@ class AIAdvancedResearcher:
         
         answer = "\n".join(answer_parts)
         
-        # 신뢰도 계산
-        avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.5
+        # 신뢰도 계산 - 실제 소스 신뢰도 기반으로 계산
+        if reliable_sources:
+            # 개별 소스 신뢰도의 평균 계산
+            source_credibility_scores = [source.credibility_score for source in reliable_sources]
+            avg_confidence = sum(source_credibility_scores) / len(source_credibility_scores)
+        else:
+            avg_confidence = 0.5
         
         # 추론 과정
-        reasoning = f"총 {len(sources)}개의 소스에서 정보를 수집했으며, 그 중 {len(reliable_sources)}개의 신뢰할 수 있는 소스를 기반으로 답변을 생성했습니다."
+        if len(reliable_sources) >= 3:
+            reasoning = f"총 {len(sources)}개의 소스에서 정보를 수집했으며, 그 중 {len(reliable_sources)}개의 신뢰할 수 있는 소스를 기반으로 답변을 생성했습니다. 평균 신뢰도는 {avg_confidence:.1%}입니다."
+        else:
+            reasoning = f"총 {len(sources)}개의 소스에서 정보를 수집했으나, 신뢰할 수 있는 소스가 {len(reliable_sources)}개로 부족합니다."
         
         # 한계점
         if len(reliable_sources) < 3:
             limitations.append("신뢰할 수 있는 소스가 부족함")
-        if avg_confidence < 0.8:
+        if avg_confidence < 0.6:
             limitations.append("정보의 신뢰도가 상대적으로 낮음")
         if not fact_verifications:
             limitations.append("사실 검증이 충분하지 않음")

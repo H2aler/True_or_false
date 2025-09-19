@@ -38,6 +38,11 @@ validators>=0.20.0
 redis>=4.6.0
 memcached>=1.6.0
 
+# Database
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
+alembic>=1.11.0
+
 # Logging & Monitoring
 structlog>=23.1.0
 prometheus-client>=0.17.0
